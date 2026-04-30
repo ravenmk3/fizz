@@ -7,17 +7,22 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ravenworks.fizz.domain.entity.*;
-import ravenworks.fizz.domain.repository.*;
-import ravenworks.fizz.engine.component.Scheduler;
-import ravenworks.fizz.engine.enums.JobStatus;
-import ravenworks.fizz.engine.enums.TaskStatus;
 import ravenworks.fizz.common.json.JsonUtils;
 import ravenworks.fizz.common.util.UUIDv7;
+import ravenworks.fizz.domain.entity.ActiveJobEntity;
+import ravenworks.fizz.domain.entity.JobEntity;
+import ravenworks.fizz.domain.entity.JobTypeEntity;
+import ravenworks.fizz.domain.entity.TaskEntity;
+import ravenworks.fizz.domain.repository.*;
+import ravenworks.fizz.engine.enums.JobStatus;
+import ravenworks.fizz.engine.enums.TaskStatus;
+import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.service.event.JobCreatedEvent;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+
 
 @Service
 public class JobService {
@@ -46,9 +51,9 @@ public class JobService {
 
     @Transactional(rollbackFor = Throwable.class)
     public CreateJobResult createJob(String tenantId, String serviceName, String jobType,
-                                      String queueingKey, String bizKey,
-                                      Integer taskConcurrency, Integer maxAttempts,
-                                      Instant scheduledAt, List<Map<String, Object>> tasks) {
+                                     String queueingKey, String bizKey,
+                                     Integer taskConcurrency, Integer maxAttempts,
+                                     Instant scheduledAt, List<Map<String, Object>> tasks) {
         if (!serviceRepository.existsByServiceName(serviceName)) {
             throw new IllegalArgumentException("Service not found: " + serviceName);
         }
@@ -157,15 +162,31 @@ public class JobService {
         return jobRepository.findAll(spec, pageRequest);
     }
 
-    public record CreateJobResult(JobEntity job, boolean created) {}
+    public record CreateJobResult(JobEntity job, boolean created) {
 
-    public record CancelResult(String id, String status, int cancelledTasks) {}
+    }
+
+
+    public record CancelResult(String id, String status, int cancelledTasks) {
+
+    }
+
 
     public static class ResourceNotFoundException extends RuntimeException {
-        public ResourceNotFoundException(String message) { super(message); }
+
+        public ResourceNotFoundException(String message) {
+            super(message);
+        }
+
     }
 
+
     public static class ConflictException extends RuntimeException {
-        public ConflictException(String message) { super(message); }
+
+        public ConflictException(String message) {
+            super(message);
+        }
+
     }
+
 }

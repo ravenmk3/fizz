@@ -6,8 +6,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import ravenworks.fizz.domain.entity.JobEntity;
 import ravenworks.fizz.engine.enums.JobStatus;
+
 import java.util.List;
 import java.util.Optional;
+
 
 public interface JobRepository extends JpaRepository<JobEntity, String>, JpaSpecificationExecutor<JobEntity> {
 
@@ -32,4 +34,9 @@ public interface JobRepository extends JpaRepository<JobEntity, String>, JpaSpec
     @Modifying
     @Query(value = "UPDATE fizz_job SET failed_count = failed_count + 1, version = version + 1 WHERE id = :id", nativeQuery = true)
     int incrementFailedCount(String id);
+
+    @Modifying
+    @Query(value = "UPDATE fizz_job SET status = :status, completed_count = :completedCount, failed_count = :failedCount, version = version + 1 WHERE id = :id", nativeQuery = true)
+    int updateStatusAndCounts(String id, String status, int completedCount, int failedCount);
+
 }

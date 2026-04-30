@@ -2,8 +2,9 @@ package ravenworks.fizz.web.controller;
 
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import ravenworks.fizz.service.service.JobService;
 import ravenworks.fizz.common.model.ApiResponse;
+import ravenworks.fizz.service.service.JobService;
+
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -27,4 +28,5 @@ public class GlobalExceptionHandler {
     public ApiResponse<Void> handleGeneral(Exception e) {
         return ApiResponse.error(500, "Internal error: " + e.getMessage());
     }
+
 }

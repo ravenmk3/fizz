@@ -2,7 +2,9 @@ package ravenworks.fizz.domain.entity;
 
 import jakarta.persistence.*;
 import ravenworks.fizz.engine.enums.BackoffStrategy;
+
 import java.time.Instant;
+
 
 @Entity
 @Table(name = "fizz_job_type")
@@ -67,45 +69,116 @@ public class JobTypeEntity {
         updatedAt = Instant.now();
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getJobType() { return jobType; }
-    public void setJobType(String jobType) { this.jobType = jobType; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getServiceName() { return serviceName; }
-    public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+    public String getJobType() {
+        return jobType;
+    }
 
-    public String getTaskPath() { return taskPath; }
-    public void setTaskPath(String taskPath) { this.taskPath = taskPath; }
+    public void setJobType(String jobType) {
+        this.jobType = jobType;
+    }
 
-    public String getNotifyPath() { return notifyPath; }
-    public void setNotifyPath(String notifyPath) { this.notifyPath = notifyPath; }
+    public String getServiceName() {
+        return serviceName;
+    }
 
-    public String getHttpMethod() { return httpMethod; }
-    public void setHttpMethod(String httpMethod) { this.httpMethod = httpMethod; }
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
 
-    public int getTimeoutMs() { return timeoutMs; }
-    public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }
+    public String getTaskPath() {
+        return taskPath;
+    }
 
-    public BackoffStrategy getBackoffStrategy() { return backoffStrategy; }
-    public void setBackoffStrategy(BackoffStrategy backoffStrategy) { this.backoffStrategy = backoffStrategy; }
+    public void setTaskPath(String taskPath) {
+        this.taskPath = taskPath;
+    }
 
-    public int getBackoffInitialMs() { return backoffInitialMs; }
-    public void setBackoffInitialMs(int backoffInitialMs) { this.backoffInitialMs = backoffInitialMs; }
+    public String getNotifyPath() {
+        return notifyPath;
+    }
 
-    public int getBackoffMaxMs() { return backoffMaxMs; }
-    public void setBackoffMaxMs(int backoffMaxMs) { this.backoffMaxMs = backoffMaxMs; }
+    public void setNotifyPath(String notifyPath) {
+        this.notifyPath = notifyPath;
+    }
 
-    public int getJobConcurrency() { return jobConcurrency; }
-    public void setJobConcurrency(int jobConcurrency) { this.jobConcurrency = jobConcurrency; }
+    public String getHttpMethod() {
+        return httpMethod;
+    }
 
-    public int getTaskConcurrency() { return taskConcurrency; }
-    public void setTaskConcurrency(int taskConcurrency) { this.taskConcurrency = taskConcurrency; }
+    public void setHttpMethod(String httpMethod) {
+        this.httpMethod = httpMethod;
+    }
 
-    public int getVersion() { return version; }
-    public void setVersion(int version) { this.version = version; }
+    public int getTimeoutMs() {
+        return timeoutMs;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public void setTimeoutMs(int timeoutMs) {
+        this.timeoutMs = timeoutMs;
+    }
+
+    public BackoffStrategy getBackoffStrategy() {
+        return backoffStrategy;
+    }
+
+    public void setBackoffStrategy(BackoffStrategy backoffStrategy) {
+        this.backoffStrategy = backoffStrategy;
+    }
+
+    public int getBackoffInitialMs() {
+        return backoffInitialMs;
+    }
+
+    public void setBackoffInitialMs(int backoffInitialMs) {
+        this.backoffInitialMs = backoffInitialMs;
+    }
+
+    public int getBackoffMaxMs() {
+        return backoffMaxMs;
+    }
+
+    public void setBackoffMaxMs(int backoffMaxMs) {
+        this.backoffMaxMs = backoffMaxMs;
+    }
+
+    public int getJobConcurrency() {
+        return jobConcurrency;
+    }
+
+    public void setJobConcurrency(int jobConcurrency) {
+        this.jobConcurrency = jobConcurrency;
+    }
+
+    public int getTaskConcurrency() {
+        return taskConcurrency;
+    }
+
+    public void setTaskConcurrency(int taskConcurrency) {
+        this.taskConcurrency = taskConcurrency;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
 }

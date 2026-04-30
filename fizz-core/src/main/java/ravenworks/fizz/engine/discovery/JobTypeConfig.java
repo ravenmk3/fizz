@@ -2,6 +2,7 @@ package ravenworks.fizz.engine.discovery;
 
 import ravenworks.fizz.engine.enums.BackoffStrategy;
 
+
 public record JobTypeConfig(
         String serviceName,
         String jobType,
@@ -14,4 +15,6 @@ public record JobTypeConfig(
         int backoffMaxMs,
         int jobConcurrency,
         int taskConcurrency
-) {}
+) {
+
+}

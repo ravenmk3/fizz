@@ -8,6 +8,7 @@ import ravenworks.fizz.engine.enums.JobStatus;
 import ravenworks.fizz.engine.model.Job;
 import ravenworks.fizz.engine.store.JobStore;
 
+
 @Component
 public class JobStoreImpl implements JobStore {
 
@@ -33,6 +34,12 @@ public class JobStoreImpl implements JobStore {
     @Transactional(rollbackFor = Throwable.class)
     public void updateStatusAndInstanceId(String jobId, JobStatus status, String instanceId) {
         jobRepository.updateStatusAndInstanceId(jobId, status, instanceId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Throwable.class)
+    public void updateStatusAndCounts(String jobId, JobStatus status, int completedCount, int failedCount) {
+        jobRepository.updateStatusAndCounts(jobId, status.name(), completedCount, failedCount);
     }
 
     @Override
@@ -66,4 +73,5 @@ public class JobStoreImpl implements JobStore {
         job.setVersion(e.getVersion());
         return job;
     }
+
 }

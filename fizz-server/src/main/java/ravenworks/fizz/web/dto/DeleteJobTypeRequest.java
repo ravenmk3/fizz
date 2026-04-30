@@ -1,3 +1,5 @@
 package ravenworks.fizz.web.dto;
 
-public record DeleteJobTypeRequest(String jobType) {}
+public record DeleteJobTypeRequest(String jobType) {
+
+}

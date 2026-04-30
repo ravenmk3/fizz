@@ -5,15 +5,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ravenworks.fizz.common.model.ApiResponse;
 import ravenworks.fizz.domain.entity.JobEntity;
 import ravenworks.fizz.service.service.JobService;
-import ravenworks.fizz.common.model.ApiResponse;
 import ravenworks.fizz.web.dto.CreateJobRequest;
 import ravenworks.fizz.web.dto.IdRequest;
 import ravenworks.fizz.web.dto.ListJobsRequest;
 import ravenworks.fizz.web.dto.PageResponse;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -95,4 +97,5 @@ public class JobController {
         map.put("updatedAt", job.getUpdatedAt());
         return map;
     }
+
 }

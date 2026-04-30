@@ -3,11 +3,13 @@ package ravenworks.fizz.common.util;
 import java.security.SecureRandom;
 import java.time.Instant;
 
+
 public final class UUIDv7 {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private UUIDv7() {}
+    private UUIDv7() {
+    }
 
     public static String generate() {
         Instant now = Instant.now();
@@ -38,4 +40,5 @@ public final class UUIDv7 {
         }
         return sb.toString();
     }
+
 }

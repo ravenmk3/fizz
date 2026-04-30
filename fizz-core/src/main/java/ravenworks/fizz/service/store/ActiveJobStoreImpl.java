@@ -7,9 +7,11 @@ import ravenworks.fizz.domain.repository.ActiveJobRepository;
 import ravenworks.fizz.engine.enums.JobStatus;
 import ravenworks.fizz.engine.model.ActiveJob;
 import ravenworks.fizz.engine.store.ActiveJobStore;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 
 @Component
 public class ActiveJobStoreImpl implements ActiveJobStore {
@@ -92,4 +94,5 @@ public class ActiveJobStoreImpl implements ActiveJobStore {
         aj.setVersion(e.getVersion());
         return aj;
     }
+
 }

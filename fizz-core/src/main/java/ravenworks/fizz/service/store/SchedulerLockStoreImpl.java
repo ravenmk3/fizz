@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 import ravenworks.fizz.domain.repository.SchedulerLockRepository;
 import ravenworks.fizz.engine.store.SchedulerLockStore;
 
+
 @Component
 public class SchedulerLockStoreImpl implements SchedulerLockStore {
 
@@ -34,4 +35,5 @@ public class SchedulerLockStoreImpl implements SchedulerLockStore {
     public void release(String instanceId) {
         lockRepository.release(instanceId);
     }
+
 }

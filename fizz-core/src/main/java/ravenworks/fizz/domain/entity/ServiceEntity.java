@@ -1,7 +1,9 @@
 package ravenworks.fizz.domain.entity;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
+
 
 @Entity
 @Table(name = "fizz_service")
@@ -35,15 +37,36 @@ public class ServiceEntity {
         updatedAt = Instant.now();
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getServiceName() { return serviceName; }
-    public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public int getVersion() { return version; }
-    public void setVersion(int version) { this.version = version; }
+    public String getServiceName() {
+        return serviceName;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
 }

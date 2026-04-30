@@ -5,10 +5,12 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import ravenworks.fizz.domain.entity.ActiveJobEntity;
 import ravenworks.fizz.engine.enums.JobStatus;
+
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+
 
 public interface ActiveJobRepository extends JpaRepository<ActiveJobEntity, String> {
 
@@ -28,4 +30,5 @@ public interface ActiveJobRepository extends JpaRepository<ActiveJobEntity, Stri
 
     @Query("SELECT MIN(a.scheduledAt) FROM ActiveJobEntity a WHERE a.status = 'PENDING' AND a.scheduledAt IS NOT NULL")
     Optional<Instant> findNearestScheduledAt();
+
 }

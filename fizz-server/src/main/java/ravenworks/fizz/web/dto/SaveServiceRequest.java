@@ -1,3 +1,5 @@
 package ravenworks.fizz.web.dto;
 
-public record SaveServiceRequest(String serviceName) {}
+public record SaveServiceRequest(String serviceName) {
+
+}

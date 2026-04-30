@@ -11,4 +11,6 @@ public record UpdateJobTypeRequest(
         Integer backoffMaxMs,
         Integer jobConcurrency,
         Integer taskConcurrency
-) {}
+) {
+
+}

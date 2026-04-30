@@ -185,7 +185,7 @@ public class DatabaseJobTypeRegistry implements JobTypeRegistry {
 
 ## 三、HTTP 调用 URL 组装
 
-TaskComponent 执行任务时，URL 组装逻辑：
+TaskRunner 执行任务时，URL 组装逻辑：
 
 ```java
 // 解析服务地址（多实例轮询）

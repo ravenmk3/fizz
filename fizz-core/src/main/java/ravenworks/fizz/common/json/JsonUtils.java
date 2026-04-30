@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.experimental.UtilityClass;
 
+
 @UtilityClass
 public class JsonUtils {
 
@@ -40,8 +41,11 @@ public class JsonUtils {
     }
 
     public static class JsonException extends RuntimeException {
+
         public JsonException(String message, Throwable cause) {
             super(message, cause);
         }
+
     }
+
 }

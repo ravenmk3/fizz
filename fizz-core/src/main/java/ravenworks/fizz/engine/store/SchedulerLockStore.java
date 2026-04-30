@@ -7,4 +7,5 @@ public interface SchedulerLockStore {
     void updateHeartbeat(String instanceId);
 
     void release(String instanceId);
+
 }

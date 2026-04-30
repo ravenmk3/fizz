@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
+
 public record CreateJobRequest(
         String tenantId,
         String serviceName,
@@ -15,5 +16,9 @@ public record CreateJobRequest(
         Instant scheduledAt,
         List<TaskParam> tasks
 ) {
-    public record TaskParam(Map<String, Object> params) {}
+
+    public record TaskParam(Map<String, Object> params) {
+
+    }
+
 }

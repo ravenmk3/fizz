@@ -2,7 +2,9 @@ package ravenworks.fizz.engine.model;
 
 import ravenworks.fizz.engine.enums.JobStatus;
 import ravenworks.fizz.engine.enums.NotificationStatus;
+
 import java.time.Instant;
+
 
 public class JobNotification {
 
@@ -16,30 +18,76 @@ public class JobNotification {
     private String lastError;
     private int version;
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getJobId() { return jobId; }
-    public void setJobId(String jobId) { this.jobId = jobId; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public JobStatus getJobStatus() { return jobStatus; }
-    public void setJobStatus(JobStatus jobStatus) { this.jobStatus = jobStatus; }
+    public String getJobId() {
+        return jobId;
+    }
 
-    public NotificationStatus getStatus() { return status; }
-    public void setStatus(NotificationStatus status) { this.status = status; }
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
 
-    public int getAttempts() { return attempts; }
-    public void setAttempts(int attempts) { this.attempts = attempts; }
+    public JobStatus getJobStatus() {
+        return jobStatus;
+    }
 
-    public int getMaxAttempts() { return maxAttempts; }
-    public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
+    public void setJobStatus(JobStatus jobStatus) {
+        this.jobStatus = jobStatus;
+    }
 
-    public Instant getAvailableAt() { return availableAt; }
-    public void setAvailableAt(Instant availableAt) { this.availableAt = availableAt; }
+    public NotificationStatus getStatus() {
+        return status;
+    }
 
-    public String getLastError() { return lastError; }
-    public void setLastError(String lastError) { this.lastError = lastError; }
+    public void setStatus(NotificationStatus status) {
+        this.status = status;
+    }
 
-    public int getVersion() { return version; }
-    public void setVersion(int version) { this.version = version; }
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(int attempts) {
+        this.attempts = attempts;
+    }
+
+    public int getMaxAttempts() {
+        return maxAttempts;
+    }
+
+    public void setMaxAttempts(int maxAttempts) {
+        this.maxAttempts = maxAttempts;
+    }
+
+    public Instant getAvailableAt() {
+        return availableAt;
+    }
+
+    public void setAvailableAt(Instant availableAt) {
+        this.availableAt = availableAt;
+    }
+
+    public String getLastError() {
+        return lastError;
+    }
+
+    public void setLastError(String lastError) {
+        this.lastError = lastError;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
 }

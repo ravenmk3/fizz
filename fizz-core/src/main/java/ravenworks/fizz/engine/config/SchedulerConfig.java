@@ -9,4 +9,5 @@ public interface SchedulerConfig {
     int getNotificationMaxAttempts();
 
     int getNotificationTimeoutMs();
+
 }

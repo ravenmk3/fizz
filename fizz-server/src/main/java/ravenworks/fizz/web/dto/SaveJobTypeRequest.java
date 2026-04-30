@@ -12,4 +12,6 @@ public record SaveJobTypeRequest(
         Integer backoffMaxMs,
         Integer jobConcurrency,
         Integer taskConcurrency
-) {}
+) {
+
+}

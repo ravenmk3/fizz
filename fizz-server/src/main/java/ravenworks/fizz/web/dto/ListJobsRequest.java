@@ -8,6 +8,13 @@ public record ListJobsRequest(
         Integer page,
         Integer size
 ) {
-    public int pageOrDefault() { return page != null ? page : 1; }
-    public int sizeOrDefault() { return size != null ? size : 20; }
+
+    public int pageOrDefault() {
+        return page != null ? page : 1;
+    }
+
+    public int sizeOrDefault() {
+        return size != null ? size : 20;
+    }
+
 }

@@ -1,14 +1,17 @@
-package ravenworks.fizz.engine.component;
+package ravenworks.fizz.engine.runtime;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 
-@Slf4j
-public abstract class Component {
+
+public abstract class Actor {
+
+    protected final Logger LOGGER = LoggerFactory.getLogger(getClass());
 
     protected final BlockingQueue<Object> inbox = new LinkedBlockingQueue<>();
     protected volatile boolean running = false;
@@ -30,11 +33,11 @@ public abstract class Component {
                     running = true;
                     eventLoop();
                 });
-        log.info("{} started", componentName());
+        LOGGER.info("{} started", componentName());
     }
 
     public void shutdown() {
-        log.info("{} stopping", componentName());
+        LOGGER.info("{} stopping", componentName());
         running = false;
         Thread t = thread;
         if (t != null) {
@@ -66,16 +69,17 @@ public abstract class Component {
                 Object msg = inbox.poll(timeoutMs(), TimeUnit.MILLISECONDS);
                 if (msg != null) {
                     handle(msg);
+                } else {
+                    onIdle();
                 }
-                onIdle();
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                log.error("{} event loop error", componentName(), e);
+                LOGGER.error("{} event loop error", componentName(), e);
             }
         }
-        log.info("{} event loop exited", componentName());
+        LOGGER.info("{} event loop exited", componentName());
     }
 
     protected abstract String componentName();
@@ -88,4 +92,5 @@ public abstract class Component {
 
     protected void onIdle() {
     }
+
 }

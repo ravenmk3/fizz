@@ -238,7 +238,7 @@ stateDiagram-v2
 
     note right of RUNNING
         失败重试（FAILED）期间状态保持 RUNNING，
-        由 TaskComponent 虚拟线程在内存中自循环重试，
+        由 TaskRunner 虚拟线程在内存中自循环重试，
         不回到 PENDING。
     end note
     SUCCESS --> [*]

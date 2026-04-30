@@ -7,9 +7,11 @@ import ravenworks.fizz.domain.repository.TaskRepository;
 import ravenworks.fizz.engine.enums.TaskStatus;
 import ravenworks.fizz.engine.model.Task;
 import ravenworks.fizz.engine.store.TaskStore;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 
 @Component
 public class TaskStoreImpl implements TaskStore {
@@ -24,6 +26,11 @@ public class TaskStoreImpl implements TaskStore {
     public List<Task> findDispatchable(String jobId, int limit, Instant now) {
         return taskRepository.findDispatchable(jobId, limit, now)
                 .stream().map(this::toModel).toList();
+    }
+
+    @Override
+    public Task findById(String taskId) {
+        return taskRepository.findById(taskId).map(this::toModel).orElse(null);
     }
 
     @Override
@@ -60,6 +67,12 @@ public class TaskStoreImpl implements TaskStore {
     }
 
     @Override
+    @Transactional(rollbackFor = Throwable.class)
+    public int resetRunningToPendingByJobId(String jobId) {
+        return taskRepository.resetRunningToPendingByJobId(jobId);
+    }
+
+    @Override
     public Optional<Instant> findNearestAvailableAt() {
         return taskRepository.findNearestAvailableAt();
     }
@@ -78,4 +91,5 @@ public class TaskStoreImpl implements TaskStore {
         t.setVersion(e.getVersion());
         return t;
     }
+
 }

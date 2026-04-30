@@ -3,7 +3,8 @@ package ravenworks.fizz.service.event;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-import ravenworks.fizz.engine.component.Scheduler;
+import ravenworks.fizz.engine.runtime.Scheduler;
+
 
 @Component
 public class JobEventListener {
@@ -18,4 +19,5 @@ public class JobEventListener {
     public void onJobCreated(JobCreatedEvent event) {
         scheduler.submitJob(event.jobId(), event.tenantId(), event.jobType(), event.scheduledAt());
     }
+
 }

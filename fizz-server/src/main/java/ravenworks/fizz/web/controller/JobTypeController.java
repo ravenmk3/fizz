@@ -4,15 +4,17 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ravenworks.fizz.common.model.ApiResponse;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.service.service.ServiceManagementService;
-import ravenworks.fizz.common.model.ApiResponse;
-import ravenworks.fizz.web.dto.SaveJobTypeRequest;
 import ravenworks.fizz.web.dto.DeleteJobTypeRequest;
+import ravenworks.fizz.web.dto.SaveJobTypeRequest;
 import ravenworks.fizz.web.dto.ServiceNameRequest;
 import ravenworks.fizz.web.dto.UpdateJobTypeRequest;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/job-types")
@@ -74,4 +76,5 @@ public class JobTypeController {
         m.put("taskConcurrency", e.getTaskConcurrency());
         return m;
     }
+
 }

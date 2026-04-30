@@ -2,14 +2,22 @@ package ravenworks.fizz.service.service;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ravenworks.fizz.domain.entity.*;
-import ravenworks.fizz.domain.repository.*;
+import ravenworks.fizz.common.util.UUIDv7;
+import ravenworks.fizz.domain.entity.JobEntity;
+import ravenworks.fizz.domain.entity.JobTypeEntity;
+import ravenworks.fizz.domain.entity.ServiceEntity;
+import ravenworks.fizz.domain.entity.ServiceInstanceEntity;
+import ravenworks.fizz.domain.repository.JobRepository;
+import ravenworks.fizz.domain.repository.JobTypeRepository;
+import ravenworks.fizz.domain.repository.ServiceInstanceRepository;
+import ravenworks.fizz.domain.repository.ServiceRepository;
 import ravenworks.fizz.engine.enums.BackoffStrategy;
 import ravenworks.fizz.engine.enums.JobStatus;
-import ravenworks.fizz.common.util.UUIDv7;
 import ravenworks.fizz.service.discovery.DatabaseJobTypeRegistry;
 import ravenworks.fizz.service.discovery.DatabaseServiceDiscovery;
+
 import java.util.List;
+
 
 @Service
 public class ServiceManagementService {
@@ -101,9 +109,9 @@ public class ServiceManagementService {
 
     @Transactional(rollbackFor = Throwable.class)
     public JobTypeEntity saveJobType(String serviceName, String jobType, String taskPath,
-                                      String notifyPath, String httpMethod, Integer timeoutMs,
-                                      String backoffStrategy, Integer backoffInitialMs, Integer backoffMaxMs,
-                                      Integer jobConcurrency, Integer taskConcurrency) {
+                                     String notifyPath, String httpMethod, Integer timeoutMs,
+                                     String backoffStrategy, Integer backoffInitialMs, Integer backoffMaxMs,
+                                     Integer jobConcurrency, Integer taskConcurrency) {
         if (!serviceRepository.existsByServiceName(serviceName)) {
             throw new JobService.ResourceNotFoundException("Service not found: " + serviceName);
         }
@@ -177,4 +185,5 @@ public class ServiceManagementService {
         jobTypeRepository.delete(entity);
         jobTypeRegistry.invalidate(jobType);
     }
+
 }

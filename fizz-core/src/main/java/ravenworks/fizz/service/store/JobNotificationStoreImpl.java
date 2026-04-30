@@ -6,9 +6,11 @@ import ravenworks.fizz.domain.entity.JobNotificationEntity;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.engine.model.JobNotification;
 import ravenworks.fizz.engine.store.JobNotificationStore;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 
 @Component
 public class JobNotificationStoreImpl implements JobNotificationStore {
@@ -79,4 +81,5 @@ public class JobNotificationStoreImpl implements JobNotificationStore {
         n.setVersion(e.getVersion());
         return n;
     }
+
 }

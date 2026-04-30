@@ -1,7 +1,9 @@
 package ravenworks.fizz.domain.entity;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
+
 
 @Entity
 @Table(name = "fizz_service_instance")
@@ -44,24 +46,60 @@ public class ServiceInstanceEntity {
         updatedAt = Instant.now();
     }
 
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public String getId() {
+        return id;
+    }
 
-    public String getServiceName() { return serviceName; }
-    public void setServiceName(String serviceName) { this.serviceName = serviceName; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
-    public String getScheme() { return scheme; }
-    public void setScheme(String scheme) { this.scheme = scheme; }
+    public String getServiceName() {
+        return serviceName;
+    }
 
-    public String getHost() { return host; }
-    public void setHost(String host) { this.host = host; }
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
 
-    public int getPort() { return port; }
-    public void setPort(int port) { this.port = port; }
+    public String getScheme() {
+        return scheme;
+    }
 
-    public int getVersion() { return version; }
-    public void setVersion(int version) { this.version = version; }
+    public void setScheme(String scheme) {
+        this.scheme = scheme;
+    }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public int getPort() {
+        return port;
+    }
+
+    public void setPort(int port) {
+        this.port = port;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public void setVersion(int version) {
+        this.version = version;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
 }

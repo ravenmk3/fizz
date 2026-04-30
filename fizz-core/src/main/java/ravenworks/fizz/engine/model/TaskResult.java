@@ -1,7 +1,9 @@
 package ravenworks.fizz.engine.model;
 
 import ravenworks.fizz.engine.enums.TaskResultStatus;
+
 import java.time.Instant;
+
 
 public record TaskResult(TaskResultStatus status, String message, Instant retryAfter) {
 
@@ -24,4 +26,5 @@ public record TaskResult(TaskResultStatus status, String message, Instant retryA
     public static TaskResult inProgress(String message, Instant retryAfter) {
         return new TaskResult(TaskResultStatus.IN_PROGRESS, message, retryAfter);
     }
+
 }

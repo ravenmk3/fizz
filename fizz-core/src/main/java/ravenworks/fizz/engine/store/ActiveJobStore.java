@@ -2,9 +2,11 @@ package ravenworks.fizz.engine.store;
 
 import ravenworks.fizz.engine.enums.JobStatus;
 import ravenworks.fizz.engine.model.ActiveJob;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 
 public interface ActiveJobStore {
 
@@ -27,4 +29,5 @@ public interface ActiveJobStore {
     void delete(String jobId);
 
     Optional<Instant> findNearestScheduledAt();
+
 }

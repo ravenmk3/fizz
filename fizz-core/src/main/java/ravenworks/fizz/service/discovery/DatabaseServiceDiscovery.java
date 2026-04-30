@@ -6,10 +6,12 @@ import org.springframework.stereotype.Component;
 import ravenworks.fizz.domain.repository.ServiceInstanceRepository;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.discovery.ServiceEndpoint;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 
 @Component
 public class DatabaseServiceDiscovery implements ServiceDiscovery {
@@ -42,4 +44,5 @@ public class DatabaseServiceDiscovery implements ServiceDiscovery {
         cache.invalidate(serviceName);
         roundRobinCounters.remove(serviceName);
     }
+
 }

@@ -5,4 +5,6 @@ public record SaveServiceInstanceRequest(
         String scheme,
         String host,
         Integer port
-) {}
+) {
+
+}

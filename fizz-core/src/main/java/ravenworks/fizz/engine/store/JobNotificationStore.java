@@ -1,9 +1,11 @@
 package ravenworks.fizz.engine.store;
 
 import ravenworks.fizz.engine.model.JobNotification;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 
 public interface JobNotificationStore {
 
@@ -16,4 +18,5 @@ public interface JobNotificationStore {
     void delete(String id);
 
     Optional<Instant> findNearestAvailableAt();
+
 }

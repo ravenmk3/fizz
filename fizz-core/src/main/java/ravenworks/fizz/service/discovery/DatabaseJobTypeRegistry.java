@@ -7,8 +7,9 @@ import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.JobTypeConfig;
 import ravenworks.fizz.engine.discovery.JobTypeRegistry;
-import ravenworks.fizz.engine.enums.BackoffStrategy;
+
 import java.time.Duration;
+
 
 @Component
 public class DatabaseJobTypeRegistry implements JobTypeRegistry {
@@ -46,4 +47,5 @@ public class DatabaseJobTypeRegistry implements JobTypeRegistry {
     public void invalidate(String jobType) {
         cache.invalidate(jobType);
     }
+
 }

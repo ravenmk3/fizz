@@ -5,9 +5,11 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import ravenworks.fizz.domain.entity.TaskEntity;
 import ravenworks.fizz.engine.enums.TaskStatus;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
 
 public interface TaskRepository extends JpaRepository<TaskEntity, String> {
 
@@ -26,4 +28,9 @@ public interface TaskRepository extends JpaRepository<TaskEntity, String> {
 
     @Query("SELECT MIN(t.availableAt) FROM TaskEntity t WHERE t.status = 'PENDING'")
     Optional<Instant> findNearestAvailableAt();
+
+    @Modifying
+    @Query(value = "UPDATE fizz_task SET status = 'PENDING', instance_id = NULL, version = version + 1 WHERE job_id = :jobId AND status = 'RUNNING'", nativeQuery = true)
+    int resetRunningToPendingByJobId(String jobId);
+
 }

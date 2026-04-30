@@ -2,13 +2,17 @@ package ravenworks.fizz.engine.store;
 
 import ravenworks.fizz.engine.enums.TaskStatus;
 import ravenworks.fizz.engine.model.Task;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+
 public interface TaskStore {
 
     List<Task> findDispatchable(String jobId, int limit, Instant now);
+
+    Task findById(String taskId);
 
     int countByJobIdAndStatus(String jobId, TaskStatus status);
 
@@ -18,5 +22,8 @@ public interface TaskStore {
 
     int recoverDanglingTasks(String currentInstanceId);
 
+    int resetRunningToPendingByJobId(String jobId);
+
     Optional<Instant> findNearestAvailableAt();
+
 }

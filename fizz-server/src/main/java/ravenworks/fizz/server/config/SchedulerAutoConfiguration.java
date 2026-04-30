@@ -4,14 +4,17 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import ravenworks.fizz.engine.component.NotificationDispatcher;
-import ravenworks.fizz.engine.component.Scheduler;
 import ravenworks.fizz.engine.discovery.JobTypeRegistry;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
+import ravenworks.fizz.engine.invoker.JdkHttpServiceInvoker;
+import ravenworks.fizz.engine.runtime.NotificationDispatcher;
+import ravenworks.fizz.engine.runtime.Scheduler;
+import ravenworks.fizz.engine.runtime.SchedulerCoordinator;
 import ravenworks.fizz.engine.store.*;
 import ravenworks.fizz.service.config.FizzSchedulerProperties;
 
 import java.net.http.HttpClient;
+
 
 @Configuration
 public class SchedulerAutoConfiguration {
@@ -23,10 +26,11 @@ public class SchedulerAutoConfiguration {
     }
 
     @Bean
-    public HttpClient schedulerHttpClient() {
-        return HttpClient.newBuilder()
+    public JdkHttpServiceInvoker jdkHttpServiceInvoker() {
+        HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
+        return new JdkHttpServiceInvoker(httpClient);
     }
 
     @Bean
@@ -36,23 +40,34 @@ public class SchedulerAutoConfiguration {
     }
 
     @Bean
-    public Scheduler scheduler(SchedulerLockStore lockStore, ActiveJobStore activeJobStore,
-                                JobStore jobStore, TaskStore taskStore,
-                                FizzSchedulerProperties properties,
-                                JobTypeRegistry jobTypeRegistry, ServiceDiscovery serviceDiscovery,
-                                NotificationDispatcher notificationDispatcher,
-                                HttpClient schedulerHttpClient) {
-        return new Scheduler(lockStore, activeJobStore, jobStore, taskStore, properties,
-                jobTypeRegistry, serviceDiscovery, notificationDispatcher, schedulerHttpClient);
+    public SchedulerCoordinator schedulerCoordinator(SchedulerLockStore lockStore,
+                                                     FizzSchedulerProperties properties) {
+        return new SchedulerCoordinator(lockStore, properties);
     }
 
     @Bean
-    public SmartLifecycle schedulerLifecycle(Scheduler scheduler) {
+    public Scheduler scheduler(SchedulerLockStore lockStore, ActiveJobStore activeJobStore,
+                               JobStore jobStore, TaskStore taskStore,
+                               FizzSchedulerProperties properties,
+                               JobTypeRegistry jobTypeRegistry, ServiceDiscovery serviceDiscovery,
+                               NotificationDispatcher notificationDispatcher,
+                               JdkHttpServiceInvoker jdkHttpServiceInvoker) {
+        return new Scheduler(lockStore, activeJobStore, jobStore, taskStore, properties,
+                jobTypeRegistry, serviceDiscovery, notificationDispatcher,
+                jdkHttpServiceInvoker, jdkHttpServiceInvoker);
+    }
+
+    @Bean
+    public SmartLifecycle schedulerLifecycle(SchedulerCoordinator coordinator, Scheduler scheduler) {
+        coordinator.setScheduler(scheduler);
+
         return new SmartLifecycle() {
+
             private volatile boolean running = false;
 
             @Override
             public void start() {
+                coordinator.start();
                 scheduler.start();
                 running = true;
             }
@@ -61,6 +76,8 @@ public class SchedulerAutoConfiguration {
             public void stop() {
                 scheduler.shutdown();
                 scheduler.awaitTermination(30_000);
+                coordinator.shutdown();
+                coordinator.awaitTermination(5_000);
                 running = false;
             }
 
@@ -75,4 +92,5 @@ public class SchedulerAutoConfiguration {
             }
         };
     }
+
 }

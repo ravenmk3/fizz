@@ -62,8 +62,9 @@ public void release(String instanceId) {
 
 **心跳参数：**
 
-- 心跳间隔：每次 event loop idle 时更新（约 2 秒）
-- 心跳超时：60 秒（超过 60 秒未更新视为死亡）
+- 锁获取间隔：5 秒（SchedulerCoordinator 在无锁时尝试获取）
+- 锁续期间隔：50 秒（SchedulerCoordinator 持有锁时续期）
+- 心跳超时：60 秒（超过 60 秒未续期视为死亡）
 
 ---
 
@@ -85,21 +86,21 @@ public void stop() {
 Scheduler.shutdown() 级联：
 ```
 running = false; unpark(thread)
-for each TenantJobScheduler: ts.shutdown()
+for each SchedulingGroup: sg.shutdown()
   → running = false; unpark(thread)
-  → for each JobComponent: jc.shutdown()
+  → for each JobRunner: jr.shutdown()
     → running = false; unpark(thread)
-    → for each TaskComponent: tc.cancel()
+    → for each TaskRunner: tr.cancel()
       → cancelled = true; unpark(taskThread)
 ```
 
 Scheduler.awaitTermination(30s) 级联等待：
 ```
-for each TenantJobScheduler: ts.awaitTermination(30s)
-  → for each JobComponent: jc.awaitTermination(30s)
-    → for each TaskComponent: tc.join(30s)
+for each SchedulingGroup: sg.awaitTermination(30s)
+  → for each JobRunner: jr.awaitTermination(30s)
+    → for each TaskRunner: tr.join(30s)
     → joinSelf(30s)
-  → joinSelf(30s)
+  → joinSelf(30s) + tell(GroupDead)（若非空闲自毁）
 → joinSelf(30s) + lockStore.release() + taskStore.recoverDanglingTasks()
 ```
 
@@ -107,15 +108,17 @@ for each TenantJobScheduler: ts.awaitTermination(30s)
 
 ```
 新进程启动
-  └─ scheduler.start()
-      └─ beforeLoop() → recover():
-          ├─ tryAcquire leader lock（轮询直到成功）
+  ├─ SchedulerCoordinator.start()   → leader 锁循环（5s 获取 / 50s 续期）
+  └─ Scheduler.start()
+      └─ 等待 Coordinator 发 LockAcquired → doRecovery():
           ├─ taskStore.recoverDanglingTasks(instanceId)
           ├─ 加载 ActiveJob（PENDING + RUNNING）
-          ├─ 按 (tenantId, jobType) 分组创建 TenantJobScheduler
-          │   ├─ RUNNING jobs → 创建 JobComponent, tell(Activate) 恢复状态
-          │   └─ PENDING jobs → addRecoveredPendingJob()
-          └─ 启动 event loop 开始正常调度
+          ├─ 对每个 status != PENDING 的 Job:
+          │   ├─ 重统计关联 Task 的 completed / failed 数量
+          │   ├─ 重置 RUNNING task → PENDING
+          │   └─ 更新 Job status → PENDING + 更新 completed / failed 计数
+          ├─ 按 (tenantId, jobType) 分组创建 SchedulingGroup
+          └─ 所有 Job 以 SubmitJob 形式提交到对应 SchedulingGroup
 ```
 
 ### 悬空任务恢复
@@ -165,13 +168,13 @@ sequenceDiagram
 
 ### 4.1 Job 并行度
 
-由 `TenantJobScheduler` 控制：`Semaphore(jobConcurrency)`
+由 `SchedulingGroup` 控制：`Semaphore(jobConcurrency)`
 
 ```java
-// TenantJobScheduler
+// SchedulingGroup
 private final Semaphore jobSlots = new Semaphore(jobConcurrency);
 
-void tryActivate() {
+void trySchedule() {
     while (jobSlots.tryAcquire()) {
         PendingEntry next = pollEligible();
         if (next == null) { jobSlots.release(); return; }
@@ -179,9 +182,9 @@ void tryActivate() {
     }
 }
 
-void handleJobCompleted(JobCompleted m) {
+void handleJobCompleted(String jobId, JobStatus status) {
     jobSlots.release();  // 释放槽位
-    tryActivate();       // 激活下一个排队 Job
+    trySchedule();       // 激活下一个排队 Job
 }
 ```
 
@@ -190,23 +193,37 @@ void handleJobCompleted(JobCompleted m) {
 
 ### 4.2 Task 并行度
 
-由 `JobComponent` 控制：`Semaphore(taskConcurrency)`
+由 `JobRunner` 控制：`runningTasks.size() < taskConcurrency` 条件判断
 
 ```java
-// JobComponent
-private final Semaphore taskSlots = new Semaphore(taskConcurrency);
+// JobRunner
+private int pendingTaskCount;
+private final Set<String> runningTasks;
+private final PriorityQueue<DelayedEntry> delayedTasks;
 
-void tryDispatch() {
-    while (taskSlots.tryAcquire()) {
-        Task task = fetchPendingTask();
-        if (task == null) { taskSlots.release(); return; }
-        dispatchTask(task);  // PENDING → RUNNING in DB
+void trySchedule() {
+    // 1. 批量从 DB 获取 PENDING task
+    while (runningTasks.size() < taskConcurrency && pendingTaskCount > 0) {
+        List<Task> pending = taskStore.findDispatchable(jobId, concurrency - running, now);
+        for (Task task : pending) {
+            taskStore.save(task);  // PENDING → RUNNING in DB
+            pendingTaskCount--;
+            launchTask(task);
+        }
+    }
+    // 2. 从延迟队列获取到期 task
+    while (runningTasks.size() < taskConcurrency && !delayedTasks.isEmpty()) {
+        DelayedEntry entry = delayedTasks.peek();
+        if (entry.availableAt > now) break;
+        delayedTasks.poll();
+        launchTask(fetchTask(entry.taskId));
     }
 }
 
-void handleTaskCompleted(TaskCompleted m) {
-    taskSlots.release();  // 释放槽位
-    tryDispatch();        // 分发下一个 Task
+void handleTaskSucceeded(TaskSucceeded m) {
+    runningTasks.remove(m.taskId());
+    completedCount++;
+    trySchedule();
 }
 ```
 
@@ -215,17 +232,23 @@ void handleTaskCompleted(TaskCompleted m) {
 
 ### 4.3 Queueing Key 串行约束
 
-相同 `queueing_key` 的作业在同 (tenant, jobType) 内互斥执行：
+相同 `queueing_key` 的作业在同 (tenant, jobType) 内互斥执行，通过 `SchedulingGroup` 内存 `runningQueueingKeys` 集合实现：
 
 ```java
+// SchedulingGroup
+private final Set<String> runningQueueingKeys = ConcurrentHashMap.newKeySet();
+
 private PendingEntry pollEligible() {
     for (PendingEntry entry : pendingFifo) {
-        if (isQueueingKeyRunning(job.getQueueingKey())) continue;
+        String qk = job.getQueueingKey();
+        if (qk != null && runningQueueingKeys.contains(qk)) continue;
         return entry;
     }
     return null;
 }
 ```
+
+激活时 `runningQueueingKeys.add(qk)`，作业完成时移除。无需每次遍历 runningJobs 查 DB。
 
 ### 并行度配置
 
@@ -249,16 +272,16 @@ fizz:
 
 - 有消息时：`tell()` 投递到 inbox + `unpark` 唤醒 event loop
 - 无消息时：event loop park 在 inbox.poll() 上，不消耗 CPU
-- 保底超时：各组件按需设置 timeoutMs（Scheduler 2s 心跳，其他 60s 保底）
+- 保底超时：各组件按需设置 timeoutMs（SchedulerCoordinator 5s/50s，SchedulingGroup 60s 保底 + 空闲计数，JobRunner 60s 保底）
 
 **唤醒触发点：**
 
 | 触发源       | 触发者              | 说明                                 |
 | ------------ | ------------------- | ------------------------------------ |
 | 新作业提交   | JobService          | `scheduler.tell(JobSubmitted)`       |
-| 任务执行完毕 | TaskComponent       | `parent.tell(TaskCompleted)`         |
+| 任务执行完毕 | TaskRunner       | `parent.tell(TaskSucceeded/TaskFailed/TaskDelayed)`         |
 | 作业取消     | JobService          | `scheduler.tell(CancelJob)`          |
-| 心跳到期     | Scheduler.onIdle    | 更新 leader 心跳                    |
+| Leader 变更  | SchedulerCoordinator | `scheduler.tell(LockAcquired/LockLost)` |
 
 ---
 
@@ -267,8 +290,8 @@ fizz:
 | 场景               | 处理方式                                               |
 | ------------------ | ------------------------------------------------------ |
 | 进程被 kill -9     | 新进程等待心跳超时（60s），然后抢锁并恢复悬空任务        |
-| 启动时数据库不可用 | 容器正常启动，event loop 内持续重试抢锁                  |
-| 数据库短暂不可用   | event loop catch 异常，标记非 leader，sleep 后重试       |
+| 启动时数据库不可用 | 容器正常启动，SchedulerCoordinator 循环内持续重试抢锁      |
+| 数据库短暂不可用   | SchedulerCoordinator catch 异常，标记 holdsLock=false，重试 |
 | HTTP 调用超时      | 等同于 FAILED，进入重试流程                            |
-| 新旧进程同时运行   | 只有 leader 执行调度，非 leader 在 onIdle 中等待抢锁     |
+| 新旧进程同时运行   | 只有 leader 执行调度，非 leader 的 SchedulerCoordinator 等待抢锁     |
 | 通知发送失败       | 固定间隔重试，最多尝试 max-attempts 次后标记 FAILED    |
