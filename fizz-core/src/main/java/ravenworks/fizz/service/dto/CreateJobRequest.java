@@ -10,6 +10,7 @@ import lombok.Setter;
 import java.util.List;
 import java.util.Map;
 
+
 @Getter
 @Setter
 public class CreateJobRequest {
@@ -38,10 +39,13 @@ public class CreateJobRequest {
     @Valid
     private List<TaskParam> tasks;
 
+
     @Getter
     @Setter
     public static class TaskParam {
+
         private Map<String, Object> params;
+
     }
 
 }

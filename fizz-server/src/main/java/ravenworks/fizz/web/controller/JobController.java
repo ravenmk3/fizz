@@ -8,14 +8,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import ravenworks.fizz.common.model.ApiResponse;
 import ravenworks.fizz.service.JobService;
-import ravenworks.fizz.service.dto.CancelJobRequest;
-import ravenworks.fizz.service.dto.CancelJobResponse;
-import ravenworks.fizz.service.dto.CreateJobRequest;
-import ravenworks.fizz.service.dto.CreateJobResponse;
-import ravenworks.fizz.service.dto.GetJobRequest;
-import ravenworks.fizz.service.dto.JobDetailResponse;
-import ravenworks.fizz.service.dto.ListJobsRequest;
-import ravenworks.fizz.service.dto.ListJobsResponse;
+import ravenworks.fizz.service.dto.*;
+
 
 @Validated
 @RestController

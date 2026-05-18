@@ -5,6 +5,7 @@ import ravenworks.fizz.service.dto.SaveServiceInstanceRequest;
 
 import java.util.List;
 
+
 public interface ServiceInstanceService {
 
     ServiceInstanceEntity save(SaveServiceInstanceRequest request);

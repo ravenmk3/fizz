@@ -6,6 +6,7 @@ import ravenworks.fizz.service.dto.UpdateJobTypeRequest;
 
 import java.util.List;
 
+
 public interface JobTypeService {
 
     JobTypeEntity save(SaveJobTypeRequest request);

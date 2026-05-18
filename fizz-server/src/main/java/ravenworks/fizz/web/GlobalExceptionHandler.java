@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import ravenworks.fizz.common.exception.BusinessException;
 import ravenworks.fizz.common.model.ApiResponse;
 
+
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {

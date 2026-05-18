@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ravenworks.fizz.common.exception.BusinessException;
 import ravenworks.fizz.common.util.Uuids;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
-import ravenworks.fizz.domain.entity.ServiceEntity;
 import ravenworks.fizz.domain.enums.BackoffStrategy;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.repository.JobRepository;
@@ -18,6 +17,7 @@ import ravenworks.fizz.service.dto.SaveJobTypeRequest;
 import ravenworks.fizz.service.dto.UpdateJobTypeRequest;
 
 import java.util.List;
+
 
 @Slf4j
 @Service

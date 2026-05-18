@@ -10,29 +10,17 @@ import org.springframework.transaction.annotation.Transactional;
 import ravenworks.fizz.common.exception.BusinessException;
 import ravenworks.fizz.common.json.JsonUtils;
 import ravenworks.fizz.common.util.Uuids;
-import ravenworks.fizz.domain.entity.ActiveJobEntity;
-import ravenworks.fizz.domain.entity.JobEntity;
-import ravenworks.fizz.domain.entity.JobTypeEntity;
-import ravenworks.fizz.domain.entity.ServiceEntity;
-import ravenworks.fizz.domain.entity.TaskEntity;
+import ravenworks.fizz.domain.entity.*;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.TaskStatus;
-import ravenworks.fizz.domain.repository.ActiveJobRepository;
-import ravenworks.fizz.domain.repository.JobRepository;
-import ravenworks.fizz.domain.repository.JobTypeRepository;
-import ravenworks.fizz.domain.repository.ServiceRepository;
-import ravenworks.fizz.domain.repository.TaskRepository;
+import ravenworks.fizz.domain.repository.*;
 import ravenworks.fizz.service.JobService;
-import ravenworks.fizz.service.dto.CancelJobResponse;
-import ravenworks.fizz.service.dto.CreateJobRequest;
-import ravenworks.fizz.service.dto.CreateJobResponse;
-import ravenworks.fizz.service.dto.JobDetailResponse;
-import ravenworks.fizz.service.dto.ListJobsRequest;
-import ravenworks.fizz.service.dto.ListJobsResponse;
+import ravenworks.fizz.service.dto.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Slf4j
 @Service

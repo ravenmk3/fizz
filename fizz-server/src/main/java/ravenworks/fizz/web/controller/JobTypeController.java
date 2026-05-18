@@ -16,6 +16,7 @@ import ravenworks.fizz.service.dto.UpdateJobTypeRequest;
 
 import java.util.List;
 
+
 @Validated
 @RestController
 @RequiredArgsConstructor

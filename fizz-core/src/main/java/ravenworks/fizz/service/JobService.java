@@ -1,11 +1,7 @@
 package ravenworks.fizz.service;
 
-import ravenworks.fizz.service.dto.CancelJobResponse;
-import ravenworks.fizz.service.dto.CreateJobRequest;
-import ravenworks.fizz.service.dto.CreateJobResponse;
-import ravenworks.fizz.service.dto.JobDetailResponse;
-import ravenworks.fizz.service.dto.ListJobsRequest;
-import ravenworks.fizz.service.dto.ListJobsResponse;
+import ravenworks.fizz.service.dto.*;
+
 
 public interface JobService {
 
