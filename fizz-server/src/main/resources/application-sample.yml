@@ -1,0 +1,31 @@
+# =============================================================================
+# Fizz 调度服务示例配置
+# 复制为 application.yml 并替换占位符后使用
+# =============================================================================
+
+spring:
+  application:
+    name: fizz
+  threads:
+    virtual:
+      enabled: true                            # 启用 Java 21+ 虚拟线程
+  output:
+    ansi:
+      enabled: always                          # 控制台彩色输出
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 替换为实际的数据库连接字符串
+    url: jdbc:mysql://localhost:3306/fizz?useSSL=true&characterEncoding=utf8mb4
+    # 替换为实际的数据库用户名
+    username: YOUR_DB_USER
+    # 替换为实际的数据库密码
+    password: YOUR_DB_PASSWORD
+  jpa:
+    hibernate:
+      ddl-auto: validate                       # 校验 Entity 与数据库表结构一致性（不自动变更 DDL）
+    properties:
+      hibernate:
+        jdbc.batch_size: 100                   # JDBC 批处理大小
+        order_inserts: true                    # 排序 INSERT 以优化批处理
+        order_updates: true                    # 排序 UPDATE 以优化批处理
+    open-in-view: false                        # 避免长连接持有 EntityManager

@@ -1,0 +1,69 @@
+package ravenworks.fizz.domain.entity;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import ravenworks.fizz.domain.enums.JobStatus;
+import ravenworks.fizz.domain.enums.NotificationStatus;
+
+import java.io.Serializable;
+import java.time.Instant;
+
+
+@Getter
+@Setter
+@Entity
+@Table(name = "fizz_job_notification")
+public class JobNotificationEntity implements Serializable {
+
+    @Id
+    @Column(columnDefinition = "CHAR(32)")
+    private String id;
+
+    @Column(name = "job_id", nullable = false, columnDefinition = "CHAR(32)")
+    private String jobId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "job_status", nullable = false)
+    private JobStatus jobStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private NotificationStatus status = NotificationStatus.PENDING;
+
+    @Column(nullable = false)
+    private int attempts;
+
+    @Column(name = "max_attempts", nullable = false)
+    private int maxAttempts = 10;
+
+    @Column(name = "available_at", nullable = false)
+    private Instant availableAt;
+
+    @Column(name = "last_error", length = 512)
+    private String lastError;
+
+    @Version
+    private int version;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+        this.updatedAt = this.createdAt;
+        if (this.availableAt == null) {
+            this.availableAt = this.createdAt;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+}
