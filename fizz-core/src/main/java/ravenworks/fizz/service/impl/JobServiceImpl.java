@@ -82,6 +82,7 @@ public class JobServiceImpl implements JobService {
         ActiveJobEntity activeJob = new ActiveJobEntity();
         activeJob.setId(jobId);
         activeJob.setTenantId(request.getTenantId());
+        activeJob.setJobType(request.getJobType());
         activeJob.setMutexKey(request.getMutexKey());
         activeJob.setStatus(JobStatus.PENDING);
         activeJob.setScheduledAt(scheduledAt);

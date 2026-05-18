@@ -40,8 +40,8 @@ public class TaskEntity implements Serializable {
     @Column(name = "last_result")
     private TaskResultStatus lastResult;
 
-    @Column(name = "last_error", length = 512)
-    private String lastError;
+    @Column(name = "last_message", length = 512)
+    private String lastMessage;
 
     @Column(name = "instance_id")
     private String instanceId;

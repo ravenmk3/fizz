@@ -143,6 +143,7 @@ CREATE TABLE IF NOT EXISTS `fizz_active_job`
 (
     `id`           CHAR(32)     NOT NULL COMMENT '作业 ID',
     `tenant_id`    VARCHAR(64)  NOT NULL COMMENT '租户 ID（冗余，避免 JOIN）',
+    `job_type`     VARCHAR(128) NOT NULL COMMENT '作业类型（冗余，避免 JOIN）',
     `mutex_key`    VARCHAR(256) NULL COMMENT 'MutexKey（冗余，避免 JOIN）',
     `status`       VARCHAR(16)  NOT NULL COMMENT 'PENDING/RUNNING',
     `scheduled_at` DATETIME(3)  NULL COMMENT '计划启动时间（冗余，避免 JOIN）',
@@ -150,7 +151,7 @@ CREATE TABLE IF NOT EXISTS `fizz_active_job`
 
     PRIMARY KEY (`id`),
     KEY `idx_status` (`status`),
-    KEY `idx_tenant_status` (`tenant_id`, `status`),
+    KEY `idx_tenant_job_type_status` (`tenant_id`, `job_type`, `status`),
     KEY `idx_mutex_key_status` (`mutex_key`, `status`),
     KEY `idx_scheduled_at` (`scheduled_at`)
 )

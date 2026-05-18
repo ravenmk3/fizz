@@ -22,6 +22,9 @@ public class ActiveJobEntity implements Serializable {
     @Column(name = "tenant_id", nullable = false)
     private String tenantId;
 
+    @Column(name = "job_type", nullable = false)
+    private String jobType;
+
     @Column(name = "mutex_key")
     private String mutexKey;
 

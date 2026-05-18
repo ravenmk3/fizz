@@ -29,8 +29,8 @@ public class JdkHttpTaskInvoker implements TaskInvoker {
 
     @Override
     public CompletableFuture<TaskResult> invoke(@NonNull ServiceInstance instance,
-                                                @NonNull String path,
                                                 @NonNull String method,
+                                                @NonNull String path,
                                                 @NonNull String body,
                                                 int timeoutMs) {
         method = method.toUpperCase();

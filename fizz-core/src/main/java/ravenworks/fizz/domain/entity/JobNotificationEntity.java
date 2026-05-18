@@ -40,8 +40,8 @@ public class JobNotificationEntity implements Serializable {
     @Column(name = "available_at", nullable = false)
     private Instant availableAt;
 
-    @Column(name = "last_error", length = 512)
-    private String lastError;
+    @Column(name = "last_message", length = 512)
+    private String lastMessage;
 
     @Version
     private int version;
