@@ -18,12 +18,7 @@ import ravenworks.fizz.engine.store.JobStore;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -44,6 +39,8 @@ public class Worker {
     private final Map<String, JobContext> assignedJobs = new LinkedHashMap<>();
     private final Map<String, JobContext> runningJobs = new LinkedHashMap<>();
     private final Set<String> runningMutexKeys = new HashSet<>();
+
+    private JobListener listener = JobListener.NOOP;
 
     public Worker(@NonNull String name,
                   @NonNull JobStore jobStore,
@@ -75,6 +72,10 @@ public class Worker {
         CompletableFuture<Void> future = new CompletableFuture<>();
         this.eventLoop.enqueue(new CancelJobRequest(job, future));
         return future;
+    }
+
+    public void setListener(@NonNull JobListener listener) {
+        this.listener = listener;
     }
 
     // ---------- Event Dispatch ----------
@@ -154,6 +155,8 @@ public class Worker {
         }
         this.assignedJobs.remove(jobId);
 
+        this.listener.onStatusChanged(ctx.job, JobStatus.CANCELLED);
+
         req.future().complete(null);
         this.enqueueTryDispatch();
     }
@@ -222,6 +225,7 @@ public class Worker {
             }
             log.info("Job {} promoted to running (active={}/{})",
                     job.getId(), this.runningJobs.size(), this.jobType.getJobConcurrency());
+            this.listener.onStatusChanged(job, JobStatus.RUNNING);
         }
     }
 
@@ -243,7 +247,7 @@ public class Worker {
         return ctx.tasks.values().stream()
                 .anyMatch(t -> !t.getAvailableAt().isAfter(now)
                         && (t.getStatus() == TaskStatus.PENDING
-                            || t.getStatus() == TaskStatus.WAITING));
+                        || t.getStatus() == TaskStatus.WAITING));
     }
 
     private void dispatchTasks() {
@@ -262,7 +266,7 @@ public class Worker {
             List<TaskEntity> ready = ctx.tasks.values().stream()
                     .filter(t -> !t.getAvailableAt().isAfter(now)
                             && (t.getStatus() == TaskStatus.PENDING
-                                || t.getStatus() == TaskStatus.WAITING))
+                            || t.getStatus() == TaskStatus.WAITING))
                     .sorted((a, b) -> a.getAvailableAt().compareTo(b.getAvailableAt()))
                     .limit(available)
                     .toList();
@@ -435,6 +439,7 @@ public class Worker {
         }
         this.assignedJobs.remove(ctx.job.getId());
         log.info("Job {} completed: {}", ctx.job.getId(), finalStatus);
+        this.listener.onStatusChanged(ctx.job, finalStatus);
         return true;
     }
 
@@ -475,6 +480,7 @@ public class Worker {
                     this.name, ctx.job.getId(), terminal, total, pct,
                     ctx.job.getSucceededCount(), ctx.job.getFailedCount(),
                     ctx.job.getCancelledCount());
+            this.listener.onProgressChanged(ctx.job, terminal, total);
         }
     }
 
@@ -483,6 +489,7 @@ public class Worker {
     }
 
     // ---------- JobContext ----------
+
 
     static class JobContext {
 
@@ -497,20 +504,29 @@ public class Worker {
             this.worker = worker;
             this.job = job;
         }
+
     }
 
     // ---------- Events ----------
 
+
     record JobAssigned(JobEntity job) {
+
     }
+
 
     record CancelJobRequest(ActiveJobEntity job, CompletableFuture<Void> future) {
+
     }
+
 
     record TryDispatch() {
+
     }
 
+
     record TaskCompleted(String taskId, String jobId, TaskResult result, Throwable error) {
+
     }
 
 }

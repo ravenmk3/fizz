@@ -22,6 +22,8 @@ public interface JobStore {
 
     ActiveJobEntity findActiveJob(String jobId);
 
+    JobEntity findJob(String jobId);
+
     List<TaskEntity> fetchReadyTasks(String jobId, LocalDateTime now, int limit);
 
     List<TaskEntity> loadNonTerminalTasks(String jobId);

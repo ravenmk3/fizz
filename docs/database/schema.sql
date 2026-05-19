@@ -166,8 +166,8 @@ CREATE TABLE IF NOT EXISTS `fizz_job_notification`
 (
     `id`           CHAR(32)     NOT NULL COMMENT 'ID',
     `job_id`       CHAR(32)     NOT NULL COMMENT '作业 ID',
-    `job_status`   VARCHAR(16)  NOT NULL COMMENT '通知的 Job 状态: RUNNING/SUCCEEDED/FAILED/CANCELLED',
-    `status`       VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT '发送状态: PENDING/FAILED（成功则删除记录）',
+    `service_name` VARCHAR(128) NOT NULL COMMENT '服务名',
+    `status`       VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT '发送状态: PENDING（成功则删除记录）',
     `attempts`     INT          NOT NULL DEFAULT 0 COMMENT '已尝试次数',
     `available_at` DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '下次可发送时间',
     `last_message` VARCHAR(512) NULL COMMENT '最后一次响应消息',
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS `fizz_job_notification`
     `updated_at`   DATETIME(3)  NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
     PRIMARY KEY (`id`),
-    KEY `idx_status_available` (`status`, `available_at`),
+    KEY `idx_available_at` (`available_at`),
     KEY `idx_job_id` (`job_id`)
 )
     ENGINE = InnoDB

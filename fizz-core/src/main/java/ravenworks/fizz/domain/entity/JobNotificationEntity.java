@@ -3,7 +3,6 @@ package ravenworks.fizz.domain.entity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.NotificationStatus;
 
 import java.io.Serializable;
@@ -23,9 +22,8 @@ public class JobNotificationEntity implements Serializable {
     @Column(name = "job_id", nullable = false, columnDefinition = "CHAR(32)")
     private String jobId;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "job_status", nullable = false)
-    private JobStatus jobStatus;
+    @Column(name = "service_name", nullable = false)
+    private String serviceName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

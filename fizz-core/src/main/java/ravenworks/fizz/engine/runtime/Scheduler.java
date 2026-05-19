@@ -3,11 +3,16 @@ package ravenworks.fizz.engine.runtime;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import ravenworks.fizz.common.runtime.EventLoop;
+import ravenworks.fizz.common.util.Uuids;
 import ravenworks.fizz.domain.entity.ActiveJobEntity;
 import ravenworks.fizz.domain.entity.JobEntity;
+import ravenworks.fizz.domain.entity.JobNotificationEntity;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
+import ravenworks.fizz.domain.enums.JobStatus;
+import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
+import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.lock.SchedulerLock;
 import ravenworks.fizz.engine.store.JobStore;
@@ -34,17 +39,25 @@ public class Scheduler {
     private final TaskInvoker taskInvoker;
     private final JobTypeRepository jobTypeRepository;
     private final ServiceHealthTracker healthTracker;
+    private final JobNotificationRepository notificationRepo;
+    private final NotificationInvoker notificationInvoker;
+
+    private Notifier notifier;
 
     public Scheduler(@NonNull JobStore jobStore,
                      @NonNull SchedulerLock schedulerLock,
                      @NonNull TaskInvoker taskInvoker,
                      @NonNull JobTypeRepository jobTypeRepository,
-                     @NonNull ServiceHealthTracker healthTracker) {
+                     @NonNull ServiceHealthTracker healthTracker,
+                     @NonNull JobNotificationRepository notificationRepo,
+                     @NonNull NotificationInvoker notificationInvoker) {
         this.jobStore = jobStore;
         this.schedulerLock = schedulerLock;
         this.taskInvoker = taskInvoker;
         this.jobTypeRepository = jobTypeRepository;
         this.healthTracker = healthTracker;
+        this.notificationRepo = notificationRepo;
+        this.notificationInvoker = notificationInvoker;
     }
 
     public void start() {
@@ -76,6 +89,7 @@ public class Scheduler {
             case EventLoop.PreShutdown _ -> this.onPreShutdown();
             case EventLoop.Terminated _ -> this.onTerminated();
             case CancelJobRequest req -> this.onCancelJob(req);
+            case AddJobNotification an -> this.onAddJobNotification(an);
             default -> log.warn("Unhandled event: {}", event);
         }
     }
@@ -93,6 +107,7 @@ public class Scheduler {
     }
 
     private void onPreShutdown() {
+        this.shutdownNotifier();
         this.shutdownWorkers();
     }
 
@@ -103,9 +118,13 @@ public class Scheduler {
     private void schedule() {
         SchedulerLock.PulseResult pr = this.schedulerLock.pulse();
         switch (pr) {
-            case ACQUIRED -> this.jobStore.recoverActiveJobs();
+            case ACQUIRED -> {
+                this.jobStore.recoverActiveJobs();
+                this.startNotifier();
+            }
             case LOST -> {
                 this.shutdownWorkers();
+                this.shutdownNotifier();
                 return;
             }
             case FAILED -> {
@@ -127,6 +146,7 @@ public class Scheduler {
                 }
                 log.info("Create worker: {}", name);
                 Worker w = new Worker(name, this.jobStore, this.taskInvoker, jobType, this.healthTracker);
+                w.setListener(this.newWorkerListener());
                 w.start();
                 return w;
             });
@@ -144,6 +164,59 @@ public class Scheduler {
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(futures).join();
         this.workers.clear();
+    }
+
+    private void startNotifier() {
+        if (this.notifier == null) {
+            this.notifier = new Notifier(this.notificationRepo,
+                    this.jobStore, this.jobTypeRepository,
+                    this.notificationInvoker, this.healthTracker);
+            this.notifier.start();
+            log.info("Notifier started");
+        }
+    }
+
+    private void shutdownNotifier() {
+        if (this.notifier != null) {
+            this.notifier.shutdown().join();
+            this.notifier = null;
+            log.info("Notifier shutdown");
+        }
+    }
+
+    private JobListener newWorkerListener() {
+        return new JobListener() {
+
+            @Override
+            public void onStatusChanged(JobEntity job, JobStatus newStatus) {
+                eventLoop.enqueue(new AddJobNotification(job));
+            }
+
+            @Override
+            public void onProgressChanged(JobEntity job, int terminal, int total) {
+                eventLoop.enqueue(new AddJobNotification(job));
+            }
+        };
+    }
+
+    private void onAddJobNotification(AddJobNotification event) {
+        JobEntity job = event.job();
+        JobTypeEntity jobType = this.jobTypeRepository.findByJobType(job.getJobType())
+                .orElse(null);
+        if (jobType == null || jobType.getNotifyPath() == null) {
+            return;
+        }
+
+        JobNotificationEntity record = new JobNotificationEntity();
+        record.setId(Uuids.uuid7Hex());
+        record.setJobId(job.getId());
+        record.setServiceName(jobType.getServiceName());
+        record.setAvailableAt(LocalDateTime.now());
+        this.notificationRepo.save(record);
+
+        if (this.notifier != null) {
+            this.notifier.wake();
+        }
     }
 
     private void onCancelJob(CancelJobRequest req) {
@@ -172,6 +245,11 @@ public class Scheduler {
 
 
     record CancelJobRequest(String jobId, CompletableFuture<Void> future) {
+
+    }
+
+
+    record AddJobNotification(JobEntity job) {
 
     }
 

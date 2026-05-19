@@ -5,13 +5,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
+import ravenworks.fizz.engine.invoker.JdkHttpNotificationInvoker;
 import ravenworks.fizz.engine.invoker.JdkHttpTaskInvoker;
+import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
-import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.engine.lock.SchedulerLock;
+import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.engine.store.JobStore;
 
 import java.net.http.HttpClient;
@@ -28,12 +31,21 @@ public class EngineConfiguration {
     }
 
     @Bean
+    public static NotificationInvoker notificationInvoker(@NonNull HttpClient httpClient,
+                                                          @NonNull ServiceDiscovery serviceDiscovery) {
+        return new JdkHttpNotificationInvoker(httpClient, serviceDiscovery);
+    }
+
+    @Bean
     public Scheduler scheduler(@NonNull JobStore jobStore,
                                @NonNull SchedulerLock schedulerLock,
                                @NonNull TaskInvoker taskInvoker,
                                @NonNull JobTypeRepository jobTypeRepository,
-                               @NonNull ServiceHealthTracker healthTracker) {
-        return new Scheduler(jobStore, schedulerLock, taskInvoker, jobTypeRepository, healthTracker);
+                               @NonNull ServiceHealthTracker healthTracker,
+                               @NonNull JobNotificationRepository notificationRepo,
+                               @NonNull NotificationInvoker notificationInvoker) {
+        return new Scheduler(jobStore, schedulerLock, taskInvoker,
+                jobTypeRepository, healthTracker, notificationRepo, notificationInvoker);
     }
 
     @Bean

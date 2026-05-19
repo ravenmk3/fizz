@@ -92,6 +92,11 @@ public class JobStoreImpl implements JobStore {
     }
 
     @Override
+    public JobEntity findJob(String jobId) {
+        return jobRepository.findById(jobId).orElse(null);
+    }
+
+    @Override
     public void recoverActiveJobs() {
         List<JobEntity> jobs = jobRepository.findActiveJobsNotInStatus(JobStatus.PENDING);
         if (jobs.isEmpty()) {

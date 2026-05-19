@@ -73,8 +73,8 @@ public class JobServiceImpl implements JobService {
         job.setJobType(request.getJobType());
         job.setMutexKey(request.getMutexKey());
         job.setBizKey(request.getBizKey());
-        job.setTaskConcurrency(request.getTaskConcurrency() != null 
-                ? request.getTaskConcurrency() 
+        job.setTaskConcurrency(request.getTaskConcurrency() != null
+                ? request.getTaskConcurrency()
                 : jobType.getTaskConcurrency());
         job.setMaxAttempts(request.getMaxAttempts() != null ? request.getMaxAttempts() : -1);
         job.setStatus(JobStatus.PENDING);
