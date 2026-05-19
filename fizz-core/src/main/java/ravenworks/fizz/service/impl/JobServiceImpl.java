@@ -1,5 +1,6 @@
 package ravenworks.fizz.service.impl;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -7,6 +8,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import ravenworks.fizz.common.exception.BusinessException;
 import ravenworks.fizz.common.json.JsonUtils;
 import ravenworks.fizz.common.util.Uuids;
@@ -14,6 +17,7 @@ import ravenworks.fizz.domain.entity.*;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.TaskStatus;
 import ravenworks.fizz.domain.repository.*;
+import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.service.JobService;
 import ravenworks.fizz.service.dto.*;
 
@@ -29,6 +33,7 @@ public class JobServiceImpl implements JobService {
 
     private static final int MAX_PAGE_SIZE = 100;
 
+    private final Scheduler scheduler;
     private final ServiceRepository serviceRepository;
     private final JobTypeRepository jobTypeRepository;
     private final JobRepository jobRepository;
@@ -36,8 +41,8 @@ public class JobServiceImpl implements JobService {
     private final ActiveJobRepository activeJobRepository;
 
     @Override
-    @Transactional
-    public CreateJobResponse create(CreateJobRequest request) {
+    @Transactional(rollbackFor = Exception.class)
+    public CreateJobResponse create(@NonNull CreateJobRequest request) {
         ServiceEntity service = serviceRepository.findByServiceName(request.getServiceName())
                 .orElseThrow(() -> new BusinessException(404, "Service not found: " + request.getServiceName()));
 
@@ -82,6 +87,7 @@ public class JobServiceImpl implements JobService {
         ActiveJobEntity activeJob = new ActiveJobEntity();
         activeJob.setId(jobId);
         activeJob.setTenantId(request.getTenantId());
+        activeJob.setServiceName(request.getServiceName());
         activeJob.setJobType(request.getJobType());
         activeJob.setMutexKey(request.getMutexKey());
         activeJob.setStatus(JobStatus.PENDING);
@@ -100,10 +106,25 @@ public class JobServiceImpl implements JobService {
             task.setAvailableAt(now);
             tasks.add(task);
         }
-        taskRepository.saveAll(tasks);
+        this.taskRepository.saveAll(tasks);
+        this.wakeupScheduler();
 
         log.info("Job created: id={}, jobType={}, tasks={}", jobId, request.getJobType(), tasks.size());
         return new CreateJobResponse(jobId, JobStatus.PENDING.name(), request.getTasks().size(), job.getCreatedAt(), true);
+    }
+
+    private void wakeupScheduler() {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+
+                @Override
+                public void afterCommit() {
+                    scheduler.wake();
+                }
+            });
+        } else {
+            this.scheduler.wake();
+        }
     }
 
     @Override

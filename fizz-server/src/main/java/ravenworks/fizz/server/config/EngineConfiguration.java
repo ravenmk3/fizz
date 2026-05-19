@@ -42,7 +42,7 @@ public class EngineConfiguration {
 
             @Override
             public boolean isRunning() {
-                return true;
+                return false;
             }
         };
     }

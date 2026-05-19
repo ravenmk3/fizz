@@ -34,9 +34,6 @@ public class JobNotificationEntity implements Serializable {
     @Column(nullable = false)
     private int attempts;
 
-    @Column(name = "max_attempts", nullable = false)
-    private int maxAttempts = 10;
-
     @Column(name = "available_at", nullable = false)
     private Instant availableAt;
 

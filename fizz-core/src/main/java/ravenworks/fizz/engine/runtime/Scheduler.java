@@ -4,9 +4,11 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import ravenworks.fizz.common.runtime.EventLoop;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -16,12 +18,14 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Scheduler {
 
     private static final Object WAKEUP_SIGNAL = new Object();
+    private static final Duration LOCK_EXPIRY = Duration.ofSeconds(60);
 
+    private final AtomicBoolean lockAcquired = new AtomicBoolean(false);
     private final Map<String, Worker> workers = new ConcurrentHashMap<>();
     private final EventLoop eventLoop;
 
     public Scheduler() {
-        this.eventLoop = new EventLoop("scheduler", 5_000, this::dispatch);
+        this.eventLoop = new EventLoop("Scheduler", 5_000, this::dispatch);
     }
 
     public void start() {
@@ -42,6 +46,7 @@ public class Scheduler {
 
     private void dispatch(Object event) {
         if (event == WAKEUP_SIGNAL) {
+            this.onWakeup();
             return;
         }
         switch (event) {
@@ -53,7 +58,12 @@ public class Scheduler {
         }
     }
 
+    private void onWakeup() {
+        this.schedule();
+    }
+
     private void onIdle() {
+        this.schedule();
     }
 
     private void onStarted() {
@@ -64,6 +74,37 @@ public class Scheduler {
     }
 
     private void onTerminated() {
+        this.releaseLock();
+    }
+
+    private void onLockAcquired() {
+        this.recoverJobs();
+    }
+
+    private void onLockLost() {
+        this.shutdownWorkers();
+    }
+
+    private boolean acquireLock() {
+        // TODO impl
+        return false;
+    }
+
+    private boolean renewLock() {
+        // TODO impl
+        return false;
+    }
+
+    private void releaseLock() {
+        // TODO impl
+    }
+
+    private void schedule() {
+        // TODO impl
+    }
+
+    private void recoverJobs() {
+        // TODO impl
     }
 
     private void shutdownWorkers() {
