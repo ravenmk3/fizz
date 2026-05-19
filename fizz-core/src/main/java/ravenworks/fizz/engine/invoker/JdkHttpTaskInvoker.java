@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import ravenworks.fizz.common.json.JsonUtils;
 import ravenworks.fizz.common.model.ApiResponse;
+import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.discovery.ServiceInstance;
+import ravenworks.fizz.engine.discovery.ServiceUnavailableException;
 import ravenworks.fizz.engine.model.TaskResult;
 
 import java.net.URI;
@@ -26,9 +28,11 @@ public class JdkHttpTaskInvoker implements TaskInvoker {
 
     @NonNull
     private final HttpClient httpClient;
+    @NonNull
+    private final ServiceDiscovery serviceDiscovery;
 
     @Override
-    public CompletableFuture<TaskResult> invoke(@NonNull ServiceInstance instance,
+    public CompletableFuture<TaskResult> invoke(@NonNull String serviceName,
                                                 @NonNull String method,
                                                 @NonNull String path,
                                                 @NonNull String body,
@@ -36,6 +40,11 @@ public class JdkHttpTaskInvoker implements TaskInvoker {
         method = method.toUpperCase();
         if (!VALID_METHODS.contains(method)) {
             throw new IllegalArgumentException(String.format("Invalid method: %s", method));
+        }
+
+        ServiceInstance instance = serviceDiscovery.resolve(serviceName);
+        if (instance == null) {
+            return CompletableFuture.failedFuture(new ServiceUnavailableException(serviceName));
         }
 
         URI uri = instance.getUri();

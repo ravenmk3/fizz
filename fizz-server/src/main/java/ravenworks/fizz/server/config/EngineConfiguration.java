@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.invoker.JdkHttpTaskInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.runtime.Scheduler;
@@ -19,8 +20,9 @@ import java.net.http.HttpClient;
 public class EngineConfiguration {
 
     @Bean
-    public static TaskInvoker taskInvoker(@NonNull HttpClient httpClient) {
-        return new JdkHttpTaskInvoker(httpClient);
+    public static TaskInvoker taskInvoker(@NonNull HttpClient httpClient,
+                                          @NonNull ServiceDiscovery serviceDiscovery) {
+        return new JdkHttpTaskInvoker(httpClient, serviceDiscovery);
     }
 
     @Bean
