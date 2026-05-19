@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Configuration;
 import ravenworks.fizz.engine.invoker.JdkHttpTaskInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.runtime.Scheduler;
+import ravenworks.fizz.engine.lock.SchedulerLock;
+import ravenworks.fizz.engine.store.JobStore;
 
 import java.net.http.HttpClient;
 
@@ -22,8 +24,9 @@ public class EngineConfiguration {
     }
 
     @Bean
-    public static Scheduler scheduler() {
-        return new Scheduler();
+    public Scheduler scheduler(@NonNull JobStore jobStore,
+                               @NonNull SchedulerLock schedulerLock) {
+        return new Scheduler(jobStore, schedulerLock);
     }
 
     @Bean

@@ -1,5 +1,6 @@
 package ravenworks.fizz.common.runtime;
 
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,6 +24,7 @@ public class EventLoop {
     private final BlockingQueue<Object> events = new LinkedBlockingQueue<>();
     private final CompletableFuture<Void> termination = new CompletableFuture<>();
 
+    @Getter
     private final String name;
     private final int idleTimeout;
     private final Consumer<Object> handler;

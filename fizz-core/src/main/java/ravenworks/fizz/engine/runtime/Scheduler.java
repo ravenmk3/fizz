@@ -3,12 +3,15 @@ package ravenworks.fizz.engine.runtime;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import ravenworks.fizz.common.runtime.EventLoop;
+import ravenworks.fizz.domain.entity.ActiveJobEntity;
+import ravenworks.fizz.domain.entity.JobEntity;
+import ravenworks.fizz.engine.lock.SchedulerLock;
+import ravenworks.fizz.engine.store.JobStore;
 
-import java.time.Duration;
+import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 /**
@@ -18,14 +21,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Scheduler {
 
     private static final Object WAKEUP_SIGNAL = new Object();
-    private static final Duration LOCK_EXPIRY = Duration.ofSeconds(60);
+    private static final int CLAIM_BATCH_SIZE = 1_000;
 
-    private final AtomicBoolean lockAcquired = new AtomicBoolean(false);
     private final Map<String, Worker> workers = new ConcurrentHashMap<>();
-    private final EventLoop eventLoop;
+    private final EventLoop eventLoop = new EventLoop("Scheduler", 5_000, this::dispatch);
+    private final JobStore jobStore;
+    private final SchedulerLock schedulerLock;
 
-    public Scheduler() {
-        this.eventLoop = new EventLoop("Scheduler", 5_000, this::dispatch);
+    public Scheduler(@NonNull JobStore jobStore,
+                     @NonNull SchedulerLock schedulerLock) {
+        this.jobStore = jobStore;
+        this.schedulerLock = schedulerLock;
     }
 
     public void start() {
@@ -41,7 +47,9 @@ public class Scheduler {
     }
 
     public CompletableFuture<Void> cancel(@NonNull String jobId) {
-        return CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        this.eventLoop.enqueue(new CancelJobRequest(jobId, future));
+        return future;
     }
 
     private void dispatch(Object event) {
@@ -54,6 +62,7 @@ public class Scheduler {
             case EventLoop.Started _ -> this.onStarted();
             case EventLoop.PreShutdown _ -> this.onPreShutdown();
             case EventLoop.Terminated _ -> this.onTerminated();
+            case CancelJobRequest req -> this.onCancelJob(req);
             default -> log.warn("Unhandled event: {}", event);
         }
     }
@@ -67,6 +76,7 @@ public class Scheduler {
     }
 
     private void onStarted() {
+        this.schedulerLock.init();
     }
 
     private void onPreShutdown() {
@@ -74,37 +84,36 @@ public class Scheduler {
     }
 
     private void onTerminated() {
-        this.releaseLock();
-    }
-
-    private void onLockAcquired() {
-        this.recoverJobs();
-    }
-
-    private void onLockLost() {
-        this.shutdownWorkers();
-    }
-
-    private boolean acquireLock() {
-        // TODO impl
-        return false;
-    }
-
-    private boolean renewLock() {
-        // TODO impl
-        return false;
-    }
-
-    private void releaseLock() {
-        // TODO impl
+        this.schedulerLock.release();
     }
 
     private void schedule() {
-        // TODO impl
-    }
-
-    private void recoverJobs() {
-        // TODO impl
+        SchedulerLock.PulseResult pr = this.schedulerLock.pulse();
+        switch (pr) {
+            case ACQUIRED -> this.jobStore.recoverActiveJobs();
+            case LOST -> {
+                this.shutdownWorkers();
+                return;
+            }
+            case FAILED -> {
+                return;
+            }
+        }
+        var jobs = jobStore.claimPendingJobs(Instant.now(), CLAIM_BATCH_SIZE);
+        if (jobs.isEmpty()) {
+            return;
+        }
+        for (JobEntity job : jobs) {
+            String workerName = job.getTenantId() + ":" + job.getJobType();
+            Worker worker = this.workers.computeIfAbsent(workerName, name -> {
+                log.info("Create worker: {}", name);
+                Worker w = new Worker(name);
+                w.start();
+                return w;
+            });
+            worker.assign(job);
+        }
+        log.info("Scheduled {} jobs across {} workers", jobs.size(), this.workers.size());
     }
 
     private void shutdownWorkers() {
@@ -114,6 +123,35 @@ public class Scheduler {
                 .toArray(CompletableFuture[]::new);
         CompletableFuture.allOf(futures).join();
         this.workers.clear();
+    }
+
+    private void onCancelJob(CancelJobRequest req) {
+        ActiveJobEntity active = this.jobStore.findActiveJob(req.jobId());
+        if (active == null) {
+            log.warn("Cancel failed: job {} not found in active jobs", req.jobId());
+            req.future().complete(null);
+            return;
+        }
+        String workerName = active.getTenantId() + ":" + active.getJobType();
+        Worker worker = this.workers.get(workerName);
+        if (worker == null) {
+            log.warn("Cancel failed: no worker found for {}", workerName);
+            req.future().complete(null);
+            return;
+        }
+        log.info("Cancel job {} routed to worker {}", req.jobId(), workerName);
+        worker.cancel(active).whenComplete((v, ex) -> {
+            if (ex != null) {
+                req.future().completeExceptionally(ex);
+            } else {
+                req.future().complete(null);
+            }
+        });
+    }
+
+
+    record CancelJobRequest(String jobId, CompletableFuture<Void> future) {
+
     }
 
 }
