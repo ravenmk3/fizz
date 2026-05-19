@@ -6,7 +6,7 @@ import lombok.Setter;
 import ravenworks.fizz.domain.enums.JobStatus;
 
 import java.io.Serializable;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 
 @Setter
@@ -36,7 +36,7 @@ public class ActiveJobEntity implements Serializable {
     private JobStatus status;
 
     @Column(name = "scheduled_at")
-    private Instant scheduledAt;
+    private LocalDateTime scheduledAt;
 
     @Version
     private int version;

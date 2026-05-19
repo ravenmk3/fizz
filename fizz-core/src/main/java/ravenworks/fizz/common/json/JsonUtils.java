@@ -8,6 +8,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
+import java.time.ZoneId;
+import java.util.TimeZone;
+
 
 /**
  * @author Raven
@@ -18,7 +21,8 @@ public class JsonUtils {
     private static final ObjectMapper MAPPER = new ObjectMapper()
             .registerModule(new JavaTimeModule())
             .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
 
     public static String encode(Object obj) {
         try {

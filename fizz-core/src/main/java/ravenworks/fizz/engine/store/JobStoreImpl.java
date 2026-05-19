@@ -19,7 +19,7 @@ import ravenworks.fizz.domain.repository.ActiveJobRepository;
 import ravenworks.fizz.domain.repository.JobRepository;
 import ravenworks.fizz.domain.repository.TaskRepository;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class JobStoreImpl implements JobStore {
     }
 
     @Override
-    public List<JobEntity> claimPendingJobs(@NonNull Instant now, int limit) {
+    public List<JobEntity> claimPendingJobs(@NonNull LocalDateTime now, int limit) {
         List<ActiveJobEntity> pendingActives = activeJobRepository.findPendingReady(JobStatus.PENDING, now);
         if (pendingActives.isEmpty()) {
             return List.of();
@@ -128,7 +128,7 @@ public class JobStoreImpl implements JobStore {
 
     @Override
     public List<TaskEntity> fetchReadyTasks(@NonNull String jobId,
-                                            @NonNull Instant now,
+                                            @NonNull LocalDateTime now,
                                             int limit) {
         return taskRepository.findPendingReady(jobId, now, PageRequest.of(0, Math.max(1, limit)));
     }
@@ -179,7 +179,7 @@ public class JobStoreImpl implements JobStore {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void markTaskRetry(@NonNull String taskId,
-                              @NonNull Instant nextAvailable,
+                              @NonNull LocalDateTime nextAvailable,
                               @NonNull TaskResultStatus lastResult,
                               String lastMessage) {
         TaskEntity task = taskRepository.findById(taskId).orElse(null);

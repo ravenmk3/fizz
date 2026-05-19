@@ -7,7 +7,7 @@ import ravenworks.fizz.domain.enums.TaskResultStatus;
 import ravenworks.fizz.domain.enums.TaskStatus;
 
 import java.io.Serializable;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -34,7 +34,7 @@ public class TaskEntity implements Serializable {
     private int attempts;
 
     @Column(name = "available_at", nullable = false)
-    private Instant availableAt;
+    private LocalDateTime availableAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "last_result")
@@ -50,14 +50,14 @@ public class TaskEntity implements Serializable {
     private int version;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = Instant.now();
+        this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
         if (this.availableAt == null) {
             this.availableAt = this.createdAt;
@@ -66,7 +66,7 @@ public class TaskEntity implements Serializable {
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = Instant.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
 }

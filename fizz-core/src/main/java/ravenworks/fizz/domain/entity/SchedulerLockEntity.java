@@ -8,7 +8,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -24,9 +24,9 @@ public class SchedulerLockEntity implements Serializable {
     private String instanceId;
 
     @Column(name = "acquired_at", nullable = false)
-    private Instant acquiredAt;
+    private LocalDateTime acquiredAt;
 
     @Column(name = "heartbeat_at", nullable = false)
-    private Instant heartbeatAt;
+    private LocalDateTime heartbeatAt;
 
 }

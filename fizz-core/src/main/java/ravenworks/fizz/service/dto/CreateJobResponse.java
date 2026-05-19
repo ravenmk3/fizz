@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -15,7 +15,7 @@ public class CreateJobResponse {
     private String id;
     private String status;
     private int totalCount;
-    private Instant createdAt;
+    private LocalDateTime createdAt;
     private boolean created;
 
 }

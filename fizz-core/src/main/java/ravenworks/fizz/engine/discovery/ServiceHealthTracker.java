@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,7 +21,7 @@ public class ServiceHealthTracker {
     private static final Duration RECOVERY_DURATION = Duration.ofSeconds(60);
 
     private final Map<String, Integer> consecutiveFailures = new ConcurrentHashMap<>();
-    private final Map<String, Instant> unavailableServices = new ConcurrentHashMap<>();
+    private final Map<String, LocalDateTime> unavailableServices = new ConcurrentHashMap<>();
 
     public void recordSuccess(@NonNull String serviceName) {
         consecutiveFailures.remove(serviceName);
@@ -36,17 +36,17 @@ public class ServiceHealthTracker {
             unavailableServices.computeIfAbsent(serviceName, k -> {
                 log.warn("Service {} marked unavailable after {} consecutive failures",
                         serviceName, failures);
-                return Instant.now();
+                return LocalDateTime.now();
             });
         }
     }
 
     public boolean isAvailable(@NonNull String serviceName) {
-        Instant unavailableSince = unavailableServices.get(serviceName);
+        LocalDateTime unavailableSince = unavailableServices.get(serviceName);
         if (unavailableSince == null) {
             return true;
         }
-        if (Duration.between(unavailableSince, Instant.now()).compareTo(RECOVERY_DURATION) >= 0) {
+        if (Duration.between(unavailableSince, LocalDateTime.now()).compareTo(RECOVERY_DURATION) >= 0) {
             unavailableServices.remove(serviceName);
             consecutiveFailures.remove(serviceName);
             log.info("Service {} auto-recovered after {}", serviceName, RECOVERY_DURATION);

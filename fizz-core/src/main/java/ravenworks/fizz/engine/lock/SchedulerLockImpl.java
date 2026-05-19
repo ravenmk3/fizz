@@ -9,7 +9,7 @@ import ravenworks.fizz.domain.entity.SchedulerLockEntity;
 import ravenworks.fizz.domain.repository.SchedulerLockRepository;
 
 import java.time.Duration;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -79,7 +79,7 @@ public class SchedulerLockImpl implements SchedulerLock {
 
     private boolean acquireInternal() {
         var opt = lockRepository.findById(1);
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         if (opt.isEmpty()) {
             SchedulerLockEntity lock = new SchedulerLockEntity();
             lock.setId(1);
@@ -93,7 +93,7 @@ public class SchedulerLockImpl implements SchedulerLock {
         if (InstanceId.VALUE.equals(lock.getInstanceId())) {
             return true;
         }
-        Instant expiry = lock.getHeartbeatAt().plus(LOCK_EXPIRY);
+        LocalDateTime expiry = lock.getHeartbeatAt().plus(LOCK_EXPIRY);
         if (now.isAfter(expiry)) {
             lock.setInstanceId(InstanceId.VALUE);
             lock.setAcquiredAt(now);
@@ -105,7 +105,7 @@ public class SchedulerLockImpl implements SchedulerLock {
     }
 
     private boolean renewInternal() {
-        int rows = lockRepository.renewHeartbeat(InstanceId.VALUE, Instant.now());
+        int rows = lockRepository.renewHeartbeat(InstanceId.VALUE, LocalDateTime.now());
         return rows > 0;
     }
 

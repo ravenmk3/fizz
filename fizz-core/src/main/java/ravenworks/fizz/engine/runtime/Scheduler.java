@@ -12,7 +12,7 @@ import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.lock.SchedulerLock;
 import ravenworks.fizz.engine.store.JobStore;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,7 +112,7 @@ public class Scheduler {
                 return;
             }
         }
-        var jobs = jobStore.claimPendingJobs(Instant.now(), CLAIM_BATCH_SIZE);
+        var jobs = jobStore.claimPendingJobs(LocalDateTime.now(), CLAIM_BATCH_SIZE);
         if (jobs.isEmpty()) {
             return;
         }

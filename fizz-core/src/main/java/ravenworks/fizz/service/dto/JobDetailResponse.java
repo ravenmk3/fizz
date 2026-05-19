@@ -3,7 +3,7 @@ package ravenworks.fizz.service.dto;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -18,13 +18,13 @@ public class JobDetailResponse {
     private int taskConcurrency;
     private int maxAttempts;
     private String status;
-    private Instant scheduledAt;
+    private LocalDateTime scheduledAt;
     private int totalCount;
     private int succeededCount;
     private int failedCount;
     private int cancelledCount;
     private double progress;
-    private Instant createdAt;
-    private Instant updatedAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
 }

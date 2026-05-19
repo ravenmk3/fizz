@@ -7,7 +7,7 @@ import ravenworks.fizz.domain.entity.TaskEntity;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.TaskResultStatus;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 
 
@@ -16,13 +16,13 @@ import java.util.List;
  */
 public interface JobStore {
 
-    List<JobEntity> claimPendingJobs(Instant now, int limit);
+    List<JobEntity> claimPendingJobs(LocalDateTime now, int limit);
 
     void recoverActiveJobs();
 
     ActiveJobEntity findActiveJob(String jobId);
 
-    List<TaskEntity> fetchReadyTasks(String jobId, Instant now, int limit);
+    List<TaskEntity> fetchReadyTasks(String jobId, LocalDateTime now, int limit);
 
     List<TaskEntity> loadNonTerminalTasks(String jobId);
 
@@ -33,7 +33,7 @@ public interface JobStore {
     void markTaskSucceeded(String taskId, String jobId);
 
     @Transactional(rollbackFor = Exception.class)
-    void markTaskRetry(String taskId, Instant nextAvailable,
+    void markTaskRetry(String taskId, LocalDateTime nextAvailable,
                        TaskResultStatus lastResult, String lastMessage);
 
     @Transactional(rollbackFor = Exception.class)

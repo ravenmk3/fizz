@@ -21,7 +21,7 @@ import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.service.JobService;
 import ravenworks.fizz.service.dto.*;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,7 +64,7 @@ public class JobServiceImpl implements JobService {
         }
 
         String jobId = Uuids.uuid7Hex();
-        Instant scheduledAt = request.getScheduledAt() != null ? Instant.parse(request.getScheduledAt()) : null;
+        LocalDateTime scheduledAt = request.getScheduledAt() != null ? LocalDateTime.parse(request.getScheduledAt()) : null;
 
         JobEntity job = new JobEntity();
         job.setId(jobId);
@@ -97,7 +97,7 @@ public class JobServiceImpl implements JobService {
         activeJobRepository.save(activeJob);
 
         List<TaskEntity> tasks = new ArrayList<>();
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         for (CreateJobRequest.TaskParam t : request.getTasks()) {
             TaskEntity task = new TaskEntity();
             task.setId(Uuids.uuid7Hex());

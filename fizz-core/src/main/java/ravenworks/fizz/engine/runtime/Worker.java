@@ -16,7 +16,8 @@ import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.model.TaskResult;
 import ravenworks.fizz.engine.store.JobStore;
 
-import java.time.Instant;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -184,7 +185,7 @@ public class Worker {
                         this.name, this.runningJobs.size(), this.jobType.getJobConcurrency());
                 break;
             }
-            if (job.getScheduledAt() != null && job.getScheduledAt().isAfter(Instant.now())) {
+            if (job.getScheduledAt() != null && job.getScheduledAt().isAfter(LocalDateTime.now())) {
                 log.debug("Worker [{}] job {} not yet scheduled, at={}",
                         this.name, job.getId(), job.getScheduledAt());
                 continue;
@@ -238,7 +239,7 @@ public class Worker {
     }
 
     private boolean hasReadyTask(JobContext ctx) {
-        Instant now = Instant.now();
+        LocalDateTime now = LocalDateTime.now();
         return ctx.tasks.values().stream()
                 .anyMatch(t -> !t.getAvailableAt().isAfter(now)
                         && (t.getStatus() == TaskStatus.PENDING
@@ -257,7 +258,7 @@ public class Worker {
                 continue;
             }
 
-            Instant now = Instant.now();
+            LocalDateTime now = LocalDateTime.now();
             List<TaskEntity> ready = ctx.tasks.values().stream()
                     .filter(t -> !t.getAvailableAt().isAfter(now)
                             && (t.getStatus() == TaskStatus.PENDING
@@ -362,7 +363,7 @@ public class Worker {
         this.healthTracker.recordFailure(this.serviceName);
 
         if (maxAttempts == -1 || currentAttempt < maxAttempts) {
-            Instant nextRetry = computeBackoff(currentAttempt);
+            LocalDateTime nextRetry = computeBackoff(currentAttempt);
             this.jobStore.markTaskRetry(task.getId(), nextRetry,
                     TaskResultStatus.FAILED, message);
             task.setStatus(TaskStatus.WAITING);
@@ -381,9 +382,9 @@ public class Worker {
     }
 
     private void handleTaskInProgress(JobContext ctx, TaskEntity task, TaskResult result) {
-        Instant retryAfter = result.retryAfter() != null
+        LocalDateTime retryAfter = result.retryAfter() != null
                 ? result.retryAfter()
-                : Instant.now().plusSeconds(60);
+                : LocalDateTime.now().plusSeconds(60);
         this.jobStore.markTaskRetry(task.getId(), retryAfter,
                 TaskResultStatus.IN_PROGRESS, result.message());
         task.setStatus(TaskStatus.WAITING);
@@ -393,7 +394,7 @@ public class Worker {
                 result.message() != null ? result.message() : "");
     }
 
-    private Instant computeBackoff(int attempts) {
+    private LocalDateTime computeBackoff(int attempts) {
         int initial = this.jobType.getBackoffInitialMs();
         int max = this.jobType.getBackoffMaxMs();
         BackoffStrategy strategy = this.jobType.getBackoffStrategy();
@@ -405,7 +406,7 @@ public class Worker {
             delayMs = initial;
         }
         delayMs = Math.min(delayMs, max);
-        return Instant.now().plusMillis(delayMs);
+        return LocalDateTime.now().plus(Duration.ofMillis(delayMs));
     }
 
     // ---------- Job Lifecycle ----------

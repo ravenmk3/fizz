@@ -7,7 +7,7 @@ import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.NotificationStatus;
 
 import java.io.Serializable;
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 
 @Getter
@@ -35,7 +35,7 @@ public class JobNotificationEntity implements Serializable {
     private int attempts;
 
     @Column(name = "available_at", nullable = false)
-    private Instant availableAt;
+    private LocalDateTime availableAt;
 
     @Column(name = "last_message", length = 512)
     private String lastMessage;
@@ -44,14 +44,14 @@ public class JobNotificationEntity implements Serializable {
     private int version;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = Instant.now();
+        this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
         if (this.availableAt == null) {
             this.availableAt = this.createdAt;
@@ -60,7 +60,7 @@ public class JobNotificationEntity implements Serializable {
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = Instant.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
 }
