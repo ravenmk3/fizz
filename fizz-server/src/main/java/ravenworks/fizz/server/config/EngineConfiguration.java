@@ -5,7 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
+import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
 import ravenworks.fizz.engine.invoker.JdkHttpTaskInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.runtime.Scheduler;
@@ -27,8 +29,11 @@ public class EngineConfiguration {
 
     @Bean
     public Scheduler scheduler(@NonNull JobStore jobStore,
-                               @NonNull SchedulerLock schedulerLock) {
-        return new Scheduler(jobStore, schedulerLock);
+                               @NonNull SchedulerLock schedulerLock,
+                               @NonNull TaskInvoker taskInvoker,
+                               @NonNull JobTypeRepository jobTypeRepository,
+                               @NonNull ServiceHealthTracker healthTracker) {
+        return new Scheduler(jobStore, schedulerLock, taskInvoker, jobTypeRepository, healthTracker);
     }
 
     @Bean

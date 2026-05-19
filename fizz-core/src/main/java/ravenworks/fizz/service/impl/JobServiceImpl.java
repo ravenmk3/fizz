@@ -73,7 +73,9 @@ public class JobServiceImpl implements JobService {
         job.setJobType(request.getJobType());
         job.setMutexKey(request.getMutexKey());
         job.setBizKey(request.getBizKey());
-        job.setTaskConcurrency(request.getTaskConcurrency() != null ? request.getTaskConcurrency() : 1);
+        job.setTaskConcurrency(request.getTaskConcurrency() != null 
+                ? request.getTaskConcurrency() 
+                : jobType.getTaskConcurrency());
         job.setMaxAttempts(request.getMaxAttempts() != null ? request.getMaxAttempts() : -1);
         job.setStatus(JobStatus.PENDING);
         job.setScheduledAt(scheduledAt);
@@ -157,8 +159,39 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public CancelJobResponse cancel(String id) {
-        throw new BusinessException(501, "Cancel job is not implemented yet");
+        JobEntity job = jobRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "Job not found: " + id));
+
+        if (job.getStatus() == JobStatus.SUCCEEDED
+                || job.getStatus() == JobStatus.FAILED
+                || job.getStatus() == JobStatus.CANCELLED) {
+            throw new BusinessException(409,
+                    "Job is already in terminal status: " + job.getStatus());
+        }
+
+        if (job.getStatus() == JobStatus.PENDING) {
+            int cancelled = taskRepository.cancelTasks(id,
+                    List.of(TaskStatus.PENDING), TaskStatus.CANCELLED);
+            job.setCancelledCount(cancelled);
+            job.setStatus(JobStatus.CANCELLED);
+            jobRepository.save(job);
+            activeJobRepository.deleteById(id);
+            log.info("Job {} cancelled directly (PENDING), {} tasks", id, cancelled);
+            return new CancelJobResponse(id, JobStatus.CANCELLED.name(), cancelled);
+        }
+
+        try {
+            scheduler.cancel(id).join();
+        } catch (Exception e) {
+            log.error("Cancel job {} failed", id, e);
+            throw new BusinessException(500, "Cancel failed: " + e.getMessage());
+        }
+
+        JobEntity updated = jobRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(500, "Job disappeared after cancel"));
+        return new CancelJobResponse(id, updated.getStatus().name(), updated.getCancelledCount());
     }
 
     private Specification<JobEntity> buildSpecification(ListJobsRequest request) {

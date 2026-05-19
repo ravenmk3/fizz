@@ -4,11 +4,16 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import ravenworks.fizz.common.runtime.InstanceId;
 import ravenworks.fizz.domain.entity.ActiveJobEntity;
 import ravenworks.fizz.domain.entity.JobEntity;
+import ravenworks.fizz.domain.entity.TaskEntity;
 import ravenworks.fizz.domain.enums.JobStatus;
+import ravenworks.fizz.domain.enums.TaskResultStatus;
 import ravenworks.fizz.domain.enums.TaskStatus;
 import ravenworks.fizz.domain.repository.ActiveJobRepository;
 import ravenworks.fizz.domain.repository.JobRepository;
@@ -96,23 +101,169 @@ public class JobStoreImpl implements JobStore {
         int recovered = 0;
         int terminated = 0;
         for (JobEntity job : jobs) {
-            TaskCounts counts = countTasks(job.getId());
-            updateJobCounts(job, counts);
-            int terminal = counts.succeeded() + counts.failed() + counts.cancelled();
-            if (terminal == job.getTotalCount()) {
-                JobStatus finalStatus = resolveFinalStatus(counts);
-                terminateJob(job, finalStatus);
-                terminated++;
-                log.info("Recovery: job {} terminated as {}", job.getId(), finalStatus);
-            } else {
+            Boolean jobTerminated = transactionTemplate.execute(ts -> {
+                TaskCounts counts = countTasks(job.getId());
+                updateJobCounts(job, counts);
+                int terminal = counts.succeeded() + counts.failed() + counts.cancelled();
+                if (terminal == job.getTotalCount()) {
+                    JobStatus finalStatus = resolveFinalStatus(counts);
+                    completeRecoveryTermination(job, finalStatus);
+                    log.info("Recovery: job {} terminated as {}", job.getId(), finalStatus);
+                    return true;
+                }
                 resetRunningTasks(job.getId());
-                resetJobToPending(job);
-                recovered++;
+                resetJobToPendingRecovery(job);
                 log.info("Recovery: job {} reset to PENDING (terminal={}/{})",
                         job.getId(), terminal, job.getTotalCount());
+                return false;
+            });
+            if (Boolean.TRUE.equals(jobTerminated)) {
+                terminated++;
+            } else {
+                recovered++;
             }
         }
         log.info("Recovery complete: {} jobs recovered, {} jobs terminated", recovered, terminated);
+    }
+
+    @Override
+    public List<TaskEntity> fetchReadyTasks(@NonNull String jobId,
+                                            @NonNull Instant now,
+                                            int limit) {
+        return taskRepository.findPendingReady(jobId, now, PageRequest.of(0, Math.max(1, limit)));
+    }
+
+    @Override
+    public List<TaskEntity> loadNonTerminalTasks(@NonNull String jobId) {
+        return taskRepository.findByJobIdAndStatusIn(jobId,
+                List.of(TaskStatus.PENDING, TaskStatus.RUNNING, TaskStatus.WAITING));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void claimTask(@NonNull String taskId) {
+        TaskEntity task = taskRepository.findById(taskId).orElse(null);
+        if (task == null || (task.getStatus() != TaskStatus.PENDING
+                && task.getStatus() != TaskStatus.WAITING)) {
+            return;
+        }
+        task.setStatus(TaskStatus.RUNNING);
+        task.setAttempts(task.getAttempts() + 1);
+        task.setInstanceId(InstanceId.VALUE);
+        taskRepository.save(task);
+        log.debug("Task {} claimed (attempt {})", taskId, task.getAttempts());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markTaskSucceeded(@NonNull String taskId,
+                                  @NonNull String jobId) {
+        TaskEntity task = taskRepository.findById(taskId).orElse(null);
+        if (task == null) {
+            return;
+        }
+        task.setStatus(TaskStatus.SUCCEEDED);
+        task.setLastResult(TaskResultStatus.SUCCEEDED);
+        task.setInstanceId(null);
+        taskRepository.save(task);
+
+        JobEntity job = jobRepository.findById(jobId).orElse(null);
+        if (job != null) {
+            job.setSucceededCount(job.getSucceededCount() + 1);
+            jobRepository.save(job);
+        }
+        log.debug("Task {} succeeded, job {} succeededCount={}",
+                taskId, jobId, job != null ? job.getSucceededCount() : 0);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markTaskRetry(@NonNull String taskId,
+                              @NonNull Instant nextAvailable,
+                              @NonNull TaskResultStatus lastResult,
+                              String lastMessage) {
+        TaskEntity task = taskRepository.findById(taskId).orElse(null);
+        if (task == null) {
+            return;
+        }
+        task.setStatus(TaskStatus.WAITING);
+        task.setAvailableAt(nextAvailable);
+        task.setLastResult(lastResult);
+        task.setLastMessage(truncate(lastMessage));
+        task.setInstanceId(null);
+        taskRepository.save(task);
+        log.debug("Task {} set WAITING, availableAt={}", taskId, nextAvailable);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void markTaskFailed(@NonNull String taskId,
+                               @NonNull String jobId,
+                               String lastMessage) {
+        TaskEntity task = taskRepository.findById(taskId).orElse(null);
+        if (task == null) {
+            return;
+        }
+        task.setStatus(TaskStatus.FAILED);
+        task.setLastResult(TaskResultStatus.FAILED);
+        task.setLastMessage(truncate(lastMessage));
+        task.setInstanceId(null);
+        taskRepository.save(task);
+
+        JobEntity job = jobRepository.findById(jobId).orElse(null);
+        if (job != null) {
+            job.setFailedCount(job.getFailedCount() + 1);
+            jobRepository.save(job);
+        }
+        log.debug("Task {} failed, job {} failedCount={}",
+                taskId, jobId, job != null ? job.getFailedCount() : 0);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void transitionJobToRunning(@NonNull JobEntity job) {
+        job.setStatus(JobStatus.RUNNING);
+        job.setInstanceId(InstanceId.VALUE);
+        jobRepository.save(job);
+
+        ActiveJobEntity active = activeJobRepository.findById(job.getId()).orElse(null);
+        if (active != null) {
+            active.setStatus(JobStatus.RUNNING);
+            activeJobRepository.save(active);
+        }
+        log.info("Job {} transitioned to RUNNING", job.getId());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void completeJob(@NonNull String jobId,
+                            @NonNull JobStatus finalStatus) {
+        JobEntity job = jobRepository.findById(jobId).orElse(null);
+        if (job == null) {
+            return;
+        }
+        job.setStatus(finalStatus);
+        jobRepository.save(job);
+        activeJobRepository.deleteById(jobId);
+        log.info("Job {} completed with status {}", jobId, finalStatus);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelJob(@NonNull String jobId) {
+        int cancelled = taskRepository.cancelTasks(jobId,
+                List.of(TaskStatus.PENDING, TaskStatus.RUNNING, TaskStatus.WAITING),
+                TaskStatus.CANCELLED);
+
+        JobEntity job = jobRepository.findById(jobId).orElse(null);
+        if (job != null) {
+            job.setCancelledCount(job.getCancelledCount() + cancelled);
+            job.setStatus(JobStatus.CANCELLED);
+            jobRepository.save(job);
+        }
+
+        activeJobRepository.deleteById(jobId);
+        log.info("Job {} cancelled ({} tasks)", jobId, cancelled);
     }
 
     private TaskCounts countTasks(String jobId) {
@@ -128,14 +279,12 @@ public class JobStoreImpl implements JobStore {
                 && job.getCancelledCount() == counts.cancelled()) {
             return;
         }
-        transactionTemplate.executeWithoutResult(status -> {
-            job.setSucceededCount(counts.succeeded());
-            job.setFailedCount(counts.failed());
-            job.setCancelledCount(counts.cancelled());
-            jobRepository.save(job);
-            log.debug("Job {} counts updated: s={}, f={}, c={}",
-                    job.getId(), counts.succeeded(), counts.failed(), counts.cancelled());
-        });
+        job.setSucceededCount(counts.succeeded());
+        job.setFailedCount(counts.failed());
+        job.setCancelledCount(counts.cancelled());
+        jobRepository.save(job);
+        log.debug("Job {} counts updated: s={}, f={}, c={}",
+                job.getId(), counts.succeeded(), counts.failed(), counts.cancelled());
     }
 
     private void resetRunningTasks(String jobId) {
@@ -144,26 +293,28 @@ public class JobStoreImpl implements JobStore {
         log.debug("Job {} reset {} running/waiting tasks to PENDING", jobId, updated);
     }
 
-    private void terminateJob(JobEntity job, JobStatus status) {
-        transactionTemplate.executeWithoutResult(ts -> {
-            job.setStatus(status);
-            jobRepository.save(job);
-            activeJobRepository.deleteById(job.getId());
-            log.info("Job {} terminated with status {}", job.getId(), status);
-        });
+    private void completeRecoveryTermination(JobEntity job, JobStatus status) {
+        job.setStatus(status);
+        jobRepository.save(job);
+        activeJobRepository.deleteById(job.getId());
     }
 
-    private void resetJobToPending(JobEntity job) {
-        transactionTemplate.executeWithoutResult(ts -> {
-            job.setStatus(JobStatus.PENDING);
-            jobRepository.save(job);
+    private void resetJobToPendingRecovery(JobEntity job) {
+        job.setStatus(JobStatus.PENDING);
+        jobRepository.save(job);
 
-            ActiveJobEntity active = activeJobRepository.findById(job.getId()).orElse(null);
-            if (active != null) {
-                active.setStatus(JobStatus.PENDING);
-                activeJobRepository.save(active);
-            }
-        });
+        ActiveJobEntity active = activeJobRepository.findById(job.getId()).orElse(null);
+        if (active != null) {
+            active.setStatus(JobStatus.PENDING);
+            activeJobRepository.save(active);
+        }
+    }
+
+    private static String truncate(String message) {
+        if (message != null && message.length() > 512) {
+            return message.substring(0, 512);
+        }
+        return message;
     }
 
     private static JobStatus resolveFinalStatus(TaskCounts counts) {

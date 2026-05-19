@@ -28,8 +28,7 @@ public class CreateJobRequest {
 
     private String bizKey;
 
-    @Positive
-    private Integer taskConcurrency = 1;
+    private Integer taskConcurrency;
 
     private Integer maxAttempts = -1;
 

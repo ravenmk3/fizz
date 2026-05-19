@@ -16,7 +16,7 @@ public interface SchedulerLockRepository extends JpaRepository<SchedulerLockEnti
     int renewHeartbeat(@Param("instanceId") String instanceId, @Param("now") Instant now);
 
     @Modifying
-    @Query(value = "UPDATE fizz_scheduler_lock SET instance_id = '' WHERE id = 1 AND instance_id = :instanceId", nativeQuery = true)
+    @Query(value = "UPDATE fizz_scheduler_lock SET instance_id = '', acquired_at = '1970-01-01 00:00:00.000', heartbeat_at = '1970-01-01 00:00:00.000' WHERE id = 1 AND instance_id = :instanceId", nativeQuery = true)
     int releaseLock(@Param("instanceId") String instanceId);
 
 }

@@ -47,7 +47,7 @@ public class JdkHttpTaskInvoker implements TaskInvoker {
             return CompletableFuture.failedFuture(new ServiceUnavailableException(serviceName));
         }
 
-        URI uri = instance.getUri();
+        URI uri = instance.getUri().resolve(path);
         HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(body);
 
         HttpRequest request = HttpRequest.newBuilder()

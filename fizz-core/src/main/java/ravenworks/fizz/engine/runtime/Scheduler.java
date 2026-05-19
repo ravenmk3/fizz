@@ -5,6 +5,10 @@ import lombok.extern.slf4j.Slf4j;
 import ravenworks.fizz.common.runtime.EventLoop;
 import ravenworks.fizz.domain.entity.ActiveJobEntity;
 import ravenworks.fizz.domain.entity.JobEntity;
+import ravenworks.fizz.domain.entity.JobTypeEntity;
+import ravenworks.fizz.domain.repository.JobTypeRepository;
+import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
+import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.lock.SchedulerLock;
 import ravenworks.fizz.engine.store.JobStore;
 
@@ -27,11 +31,20 @@ public class Scheduler {
     private final EventLoop eventLoop = new EventLoop("Scheduler", 5_000, this::dispatch);
     private final JobStore jobStore;
     private final SchedulerLock schedulerLock;
+    private final TaskInvoker taskInvoker;
+    private final JobTypeRepository jobTypeRepository;
+    private final ServiceHealthTracker healthTracker;
 
     public Scheduler(@NonNull JobStore jobStore,
-                     @NonNull SchedulerLock schedulerLock) {
+                     @NonNull SchedulerLock schedulerLock,
+                     @NonNull TaskInvoker taskInvoker,
+                     @NonNull JobTypeRepository jobTypeRepository,
+                     @NonNull ServiceHealthTracker healthTracker) {
         this.jobStore = jobStore;
         this.schedulerLock = schedulerLock;
+        this.taskInvoker = taskInvoker;
+        this.jobTypeRepository = jobTypeRepository;
+        this.healthTracker = healthTracker;
     }
 
     public void start() {
@@ -106,12 +119,20 @@ public class Scheduler {
         for (JobEntity job : jobs) {
             String workerName = job.getTenantId() + ":" + job.getJobType();
             Worker worker = this.workers.computeIfAbsent(workerName, name -> {
+                JobTypeEntity jobType = this.jobTypeRepository.findByJobType(job.getJobType())
+                        .orElse(null);
+                if (jobType == null) {
+                    log.warn("JobType {} not found, skip job {}", job.getJobType(), job.getId());
+                    return null;
+                }
                 log.info("Create worker: {}", name);
-                Worker w = new Worker(name);
+                Worker w = new Worker(name, this.jobStore, this.taskInvoker, jobType, this.healthTracker);
                 w.start();
                 return w;
             });
-            worker.assign(job);
+            if (worker != null) {
+                worker.assign(job);
+            }
         }
         log.info("Scheduled {} jobs across {} workers", jobs.size(), this.workers.size());
     }
