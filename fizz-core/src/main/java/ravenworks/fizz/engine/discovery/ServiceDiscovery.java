@@ -1,7 +1,12 @@
 package ravenworks.fizz.engine.discovery;
 
+import lombok.NonNull;
+
+import java.util.List;
+
+
 public interface ServiceDiscovery {
 
-    ServiceInstance resolve(String name);
+    List<ServiceInstance> getInstances(@NonNull String serviceName);
 
 }

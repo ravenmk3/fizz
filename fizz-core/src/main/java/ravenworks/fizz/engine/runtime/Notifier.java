@@ -10,7 +10,7 @@ import ravenworks.fizz.domain.entity.JobNotificationEntity;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
-import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
+import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.model.NotificationBody;
 import ravenworks.fizz.engine.store.JobStore;
@@ -37,18 +37,18 @@ public class Notifier {
     private final JobStore jobStore;
     private final JobTypeRepository jobTypeRepository;
     private final NotificationInvoker invoker;
-    private final ServiceHealthTracker healthTracker;
+    private final ServiceHealthIndicator healthIndicator;
 
     public Notifier(@NonNull JobNotificationRepository notificationRepo,
                     @NonNull JobStore jobStore,
                     @NonNull JobTypeRepository jobTypeRepository,
                     @NonNull NotificationInvoker invoker,
-                    @NonNull ServiceHealthTracker healthTracker) {
+                    @NonNull ServiceHealthIndicator healthIndicator) {
         this.notificationRepo = notificationRepo;
         this.jobStore = jobStore;
         this.jobTypeRepository = jobTypeRepository;
         this.invoker = invoker;
-        this.healthTracker = healthTracker;
+        this.healthIndicator = healthIndicator;
     }
 
     public void start() {
@@ -85,7 +85,7 @@ public class Notifier {
             }
 
             for (JobNotificationEntity record : records) {
-                if (!this.healthTracker.isAvailable(record.getServiceName())) {
+                if (!this.healthIndicator.isAvailable(record.getServiceName())) {
                     record.setAvailableAt(LocalDateTime.now().plusMinutes(5));
                     this.notificationRepo.save(record);
                     continue;

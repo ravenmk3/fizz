@@ -11,7 +11,7 @@ import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
-import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
+import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.lock.SchedulerLock;
@@ -38,7 +38,7 @@ public class Scheduler {
     private final SchedulerLock schedulerLock;
     private final TaskInvoker taskInvoker;
     private final JobTypeRepository jobTypeRepository;
-    private final ServiceHealthTracker healthTracker;
+    private final ServiceHealthIndicator healthIndicator;
     private final JobNotificationRepository notificationRepo;
     private final NotificationInvoker notificationInvoker;
 
@@ -48,14 +48,14 @@ public class Scheduler {
                      @NonNull SchedulerLock schedulerLock,
                      @NonNull TaskInvoker taskInvoker,
                      @NonNull JobTypeRepository jobTypeRepository,
-                     @NonNull ServiceHealthTracker healthTracker,
+                     @NonNull ServiceHealthIndicator healthIndicator,
                      @NonNull JobNotificationRepository notificationRepo,
                      @NonNull NotificationInvoker notificationInvoker) {
         this.jobStore = jobStore;
         this.schedulerLock = schedulerLock;
         this.taskInvoker = taskInvoker;
         this.jobTypeRepository = jobTypeRepository;
-        this.healthTracker = healthTracker;
+        this.healthIndicator = healthIndicator;
         this.notificationRepo = notificationRepo;
         this.notificationInvoker = notificationInvoker;
     }
@@ -145,7 +145,7 @@ public class Scheduler {
                     return null;
                 }
                 log.info("Create worker: {}", name);
-                Worker w = new Worker(name, this.jobStore, this.taskInvoker, jobType, this.healthTracker);
+                Worker w = new Worker(name, this.jobStore, this.taskInvoker, jobType, this.healthIndicator);
                 w.setListener(this.newWorkerListener());
                 w.start();
                 return w;
@@ -170,7 +170,7 @@ public class Scheduler {
         if (this.notifier == null) {
             this.notifier = new Notifier(this.notificationRepo,
                     this.jobStore, this.jobTypeRepository,
-                    this.notificationInvoker, this.healthTracker);
+                    this.notificationInvoker, this.healthIndicator);
             this.notifier.start();
             log.info("Notifier started");
         }

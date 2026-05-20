@@ -11,7 +11,7 @@ import ravenworks.fizz.domain.enums.BackoffStrategy;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.TaskResultStatus;
 import ravenworks.fizz.domain.enums.TaskStatus;
-import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
+import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.model.TaskResult;
 import ravenworks.fizz.engine.store.JobStore;
@@ -34,7 +34,7 @@ public class Worker {
     private final TaskInvoker taskInvoker;
     private final JobTypeEntity jobType;
     private final String serviceName;
-    private final ServiceHealthTracker healthTracker;
+    private final ServiceHealthIndicator healthIndicator;
 
     private final Map<String, JobContext> assignedJobs = new LinkedHashMap<>();
     private final Map<String, JobContext> runningJobs = new LinkedHashMap<>();
@@ -46,13 +46,13 @@ public class Worker {
                   @NonNull JobStore jobStore,
                   @NonNull TaskInvoker taskInvoker,
                   @NonNull JobTypeEntity jobType,
-                  @NonNull ServiceHealthTracker healthTracker) {
+                  @NonNull ServiceHealthIndicator healthIndicator) {
         this.name = name;
         this.jobStore = jobStore;
         this.taskInvoker = taskInvoker;
         this.jobType = jobType;
         this.serviceName = jobType.getServiceName();
-        this.healthTracker = healthTracker;
+        this.healthIndicator = healthIndicator;
         this.eventLoop = new EventLoop("Worker-" + name, 10_000, this::dispatch);
     }
 
@@ -203,7 +203,7 @@ public class Worker {
                         this.name, job.getId(), job.getMutexKey(), holder);
                 continue;
             }
-            if (!this.healthTracker.isAvailable(this.serviceName)) {
+            if (!this.healthIndicator.isAvailable(this.serviceName)) {
                 log.warn("Worker [{}] service {} unavailable, skip dispatch",
                         this.name, this.serviceName);
                 break;
@@ -283,7 +283,7 @@ public class Worker {
     }
 
     private void dispatchTask(JobContext ctx, TaskEntity task) {
-        if (!this.healthTracker.isAvailable(this.serviceName)) {
+        if (!this.healthIndicator.isAvailable(this.serviceName)) {
             return;
         }
         try {
@@ -356,15 +356,12 @@ public class Worker {
         this.jobStore.markTaskSucceeded(task.getId(), ctx.job.getId());
         ctx.job.setSucceededCount(ctx.job.getSucceededCount() + 1);
         ctx.tasks.remove(task.getId());
-        this.healthTracker.recordSuccess(this.serviceName);
         log.debug("Worker [{}] task {} succeeded for job {}", this.name, task.getId(), ctx.job.getId());
     }
 
     private void handleTaskFailure(JobContext ctx, TaskEntity task, String message) {
         int maxAttempts = ctx.job.getMaxAttempts();
         int currentAttempt = task.getAttempts();
-
-        this.healthTracker.recordFailure(this.serviceName);
 
         if (maxAttempts == -1 || currentAttempt < maxAttempts) {
             LocalDateTime nextRetry = computeBackoff(currentAttempt);

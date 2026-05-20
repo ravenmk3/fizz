@@ -8,11 +8,9 @@ import org.springframework.context.annotation.Configuration;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
-import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
-import ravenworks.fizz.engine.invoker.JdkHttpNotificationInvoker;
-import ravenworks.fizz.engine.invoker.JdkHttpTaskInvoker;
-import ravenworks.fizz.engine.invoker.NotificationInvoker;
-import ravenworks.fizz.engine.invoker.TaskInvoker;
+import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
+import ravenworks.fizz.engine.discovery.ServiceLoadBalancer;
+import ravenworks.fizz.engine.invoker.*;
 import ravenworks.fizz.engine.lock.SchedulerLock;
 import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.engine.store.JobStore;
@@ -25,15 +23,24 @@ import java.net.http.HttpClient;
 public class EngineConfiguration {
 
     @Bean
-    public static TaskInvoker taskInvoker(@NonNull HttpClient httpClient,
-                                          @NonNull ServiceDiscovery serviceDiscovery) {
-        return new JdkHttpTaskInvoker(httpClient, serviceDiscovery);
+    public static ServiceLoadBalancer serviceLoadBalancer(@NonNull ServiceDiscovery serviceDiscovery) {
+        return new ServiceLoadBalancer(serviceDiscovery);
     }
 
     @Bean
-    public static NotificationInvoker notificationInvoker(@NonNull HttpClient httpClient,
-                                                          @NonNull ServiceDiscovery serviceDiscovery) {
-        return new JdkHttpNotificationInvoker(httpClient, serviceDiscovery);
+    public static JdkHttpServiceClient serviceClient(@NonNull HttpClient httpClient,
+                                                     @NonNull ServiceLoadBalancer loadBalancer) {
+        return new JdkHttpServiceClient(httpClient, loadBalancer);
+    }
+
+    @Bean
+    public static TaskInvoker taskInvoker(@NonNull ServiceClient serviceClient) {
+        return new TaskInvokerImpl(serviceClient);
+    }
+
+    @Bean
+    public static NotificationInvoker notificationInvoker(@NonNull ServiceClient serviceClient) {
+        return new NotificationInvokerImpl(serviceClient);
     }
 
     @Bean
@@ -41,11 +48,11 @@ public class EngineConfiguration {
                                @NonNull SchedulerLock schedulerLock,
                                @NonNull TaskInvoker taskInvoker,
                                @NonNull JobTypeRepository jobTypeRepository,
-                               @NonNull ServiceHealthTracker healthTracker,
+                               @NonNull ServiceHealthIndicator healthIndicator,
                                @NonNull JobNotificationRepository notificationRepo,
                                @NonNull NotificationInvoker notificationInvoker) {
         return new Scheduler(jobStore, schedulerLock, taskInvoker,
-                jobTypeRepository, healthTracker, notificationRepo, notificationInvoker);
+                jobTypeRepository, healthIndicator, notificationRepo, notificationInvoker);
     }
 
     @Bean

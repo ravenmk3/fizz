@@ -8,10 +8,7 @@ import org.springframework.stereotype.Component;
 import ravenworks.fizz.domain.repository.ServiceInstanceRepository;
 
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -22,7 +19,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DbServiceDiscovery implements ServiceDiscovery {
 
     private final ServiceInstanceRepository repo;
-    private final Map<String, AtomicInteger> counters = new ConcurrentHashMap<>();
     private final LoadingCache<String, List<ServiceInstance>> cache;
 
     public DbServiceDiscovery(@NonNull ServiceInstanceRepository repo) {
@@ -33,14 +29,9 @@ public class DbServiceDiscovery implements ServiceDiscovery {
     }
 
     @Override
-    public ServiceInstance resolve(@NonNull String serviceName) {
+    public List<ServiceInstance> getInstances(@NonNull String serviceName) {
         List<ServiceInstance> instances = this.cache.get(serviceName);
-        if (instances.isEmpty()) {
-            return null;
-        }
-        AtomicInteger counter = this.counters.computeIfAbsent(serviceName, k -> new AtomicInteger());
-        int idx = counter.getAndUpdate(i -> (i + 1) % instances.size());
-        return instances.get(idx);
+        return instances != null ? instances : List.of();
     }
 
     private List<ServiceInstance> loadInstances(String serviceName) {
