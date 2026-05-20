@@ -6,7 +6,6 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
-import ravenworks.fizz.engine.store.JobTypeStore;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.discovery.ServiceLoadBalancer;
@@ -14,6 +13,7 @@ import ravenworks.fizz.engine.invoker.*;
 import ravenworks.fizz.engine.lock.SchedulerLock;
 import ravenworks.fizz.engine.runtime.Scheduler;
 import ravenworks.fizz.engine.store.JobStore;
+import ravenworks.fizz.engine.store.JobTypeStore;
 
 import java.net.http.HttpClient;
 

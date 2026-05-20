@@ -12,8 +12,8 @@ import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.model.NotificationBody;
-import ravenworks.fizz.engine.store.JobTypeStore;
 import ravenworks.fizz.engine.store.JobStore;
+import ravenworks.fizz.engine.store.JobTypeStore;
 
 import java.time.LocalDateTime;
 import java.util.List;

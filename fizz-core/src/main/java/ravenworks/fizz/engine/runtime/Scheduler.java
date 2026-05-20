@@ -107,8 +107,8 @@ public class Scheduler {
     }
 
     private void onPreShutdown() {
-        this.shutdownNotifier();
         this.shutdownWorkers();
+        this.shutdownNotifier();
     }
 
     private void onTerminated() {
