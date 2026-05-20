@@ -10,7 +10,7 @@ import ravenworks.fizz.domain.entity.JobNotificationEntity;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
-import ravenworks.fizz.domain.repository.JobTypeRepository;
+import ravenworks.fizz.engine.store.JobTypeStore;
 import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
@@ -37,7 +37,7 @@ public class Scheduler {
     private final JobStore jobStore;
     private final SchedulerLock schedulerLock;
     private final TaskInvoker taskInvoker;
-    private final JobTypeRepository jobTypeRepository;
+    private final JobTypeStore jobTypeRegistry;
     private final ServiceHealthIndicator healthIndicator;
     private final JobNotificationRepository notificationRepo;
     private final NotificationInvoker notificationInvoker;
@@ -47,14 +47,14 @@ public class Scheduler {
     public Scheduler(@NonNull JobStore jobStore,
                      @NonNull SchedulerLock schedulerLock,
                      @NonNull TaskInvoker taskInvoker,
-                     @NonNull JobTypeRepository jobTypeRepository,
+                     @NonNull JobTypeStore jobTypeRegistry,
                      @NonNull ServiceHealthIndicator healthIndicator,
                      @NonNull JobNotificationRepository notificationRepo,
                      @NonNull NotificationInvoker notificationInvoker) {
         this.jobStore = jobStore;
         this.schedulerLock = schedulerLock;
         this.taskInvoker = taskInvoker;
-        this.jobTypeRepository = jobTypeRepository;
+        this.jobTypeRegistry = jobTypeRegistry;
         this.healthIndicator = healthIndicator;
         this.notificationRepo = notificationRepo;
         this.notificationInvoker = notificationInvoker;
@@ -138,8 +138,7 @@ public class Scheduler {
         for (JobEntity job : jobs) {
             String workerName = makeWorkerName(job.getTenantId(), job.getJobType());
             Worker worker = this.workers.computeIfAbsent(workerName, name -> {
-                JobTypeEntity jobType = this.jobTypeRepository.findByJobType(job.getJobType())
-                        .orElse(null);
+                JobTypeEntity jobType = this.jobTypeRegistry.get(job.getJobType());
                 if (jobType == null) {
                     log.warn("JobType {} not found, skip job {}", job.getJobType(), job.getId());
                     return null;
@@ -169,7 +168,7 @@ public class Scheduler {
     private void startNotifier() {
         if (this.notifier == null) {
             this.notifier = new Notifier(this.notificationRepo,
-                    this.jobStore, this.jobTypeRepository,
+                    this.jobStore, this.jobTypeRegistry,
                     this.notificationInvoker, this.healthIndicator);
             this.notifier.start();
             log.info("Notifier started");
@@ -201,8 +200,7 @@ public class Scheduler {
 
     private void onAddJobNotification(AddJobNotification event) {
         JobEntity job = event.job();
-        JobTypeEntity jobType = this.jobTypeRepository.findByJobType(job.getJobType())
-                .orElse(null);
+        JobTypeEntity jobType = this.jobTypeRegistry.get(job.getJobType());
         if (jobType == null || jobType.getNotifyPath() == null) {
             return;
         }

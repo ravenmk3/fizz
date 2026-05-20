@@ -9,17 +9,15 @@ import ravenworks.fizz.domain.entity.JobEntity;
 import ravenworks.fizz.domain.entity.JobNotificationEntity;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
-import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.model.NotificationBody;
+import ravenworks.fizz.engine.store.JobTypeStore;
 import ravenworks.fizz.engine.store.JobStore;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 /**
@@ -32,21 +30,20 @@ public class Notifier {
     private static final int NOTIFY_TIMEOUT_MS = 30_000;
 
     private final EventLoop eventLoop = new EventLoop("Notifier", 10_000, this::dispatch);
-    private final Map<String, JobTypeEntity> jobTypeCache = new ConcurrentHashMap<>();
     private final JobNotificationRepository notificationRepo;
     private final JobStore jobStore;
-    private final JobTypeRepository jobTypeRepository;
+    private final JobTypeStore jobTypeRegistry;
     private final NotificationInvoker invoker;
     private final ServiceHealthIndicator healthIndicator;
 
     public Notifier(@NonNull JobNotificationRepository notificationRepo,
                     @NonNull JobStore jobStore,
-                    @NonNull JobTypeRepository jobTypeRepository,
+                    @NonNull JobTypeStore jobTypeRegistry,
                     @NonNull NotificationInvoker invoker,
                     @NonNull ServiceHealthIndicator healthIndicator) {
         this.notificationRepo = notificationRepo;
         this.jobStore = jobStore;
-        this.jobTypeRepository = jobTypeRepository;
+        this.jobTypeRegistry = jobTypeRegistry;
         this.invoker = invoker;
         this.healthIndicator = healthIndicator;
     }
@@ -103,8 +100,7 @@ public class Notifier {
             return;
         }
 
-        JobTypeEntity jobType = this.jobTypeCache.computeIfAbsent(job.getJobType(),
-                type -> this.jobTypeRepository.findByJobType(type).orElse(null));
+        JobTypeEntity jobType = this.jobTypeRegistry.get(job.getJobType());
         if (jobType == null || jobType.getNotifyPath() == null) {
             log.warn("Notification: job type {} not found or no notifyPath, delete record",
                     job.getJobType());

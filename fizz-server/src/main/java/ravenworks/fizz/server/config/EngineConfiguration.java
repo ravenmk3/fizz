@@ -6,7 +6,7 @@ import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
-import ravenworks.fizz.domain.repository.JobTypeRepository;
+import ravenworks.fizz.engine.store.JobTypeStore;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.discovery.ServiceLoadBalancer;
@@ -47,12 +47,12 @@ public class EngineConfiguration {
     public Scheduler scheduler(@NonNull JobStore jobStore,
                                @NonNull SchedulerLock schedulerLock,
                                @NonNull TaskInvoker taskInvoker,
-                               @NonNull JobTypeRepository jobTypeRepository,
+                               @NonNull JobTypeStore jobTypeRegistry,
                                @NonNull ServiceHealthIndicator healthIndicator,
                                @NonNull JobNotificationRepository notificationRepo,
                                @NonNull NotificationInvoker notificationInvoker) {
         return new Scheduler(jobStore, schedulerLock, taskInvoker,
-                jobTypeRepository, healthIndicator, notificationRepo, notificationInvoker);
+                jobTypeRegistry, healthIndicator, notificationRepo, notificationInvoker);
     }
 
     @Bean
