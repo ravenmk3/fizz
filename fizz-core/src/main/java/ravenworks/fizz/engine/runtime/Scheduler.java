@@ -10,14 +10,15 @@ import ravenworks.fizz.domain.entity.JobNotificationEntity;
 import ravenworks.fizz.domain.entity.JobTypeEntity;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.repository.JobNotificationRepository;
-import ravenworks.fizz.engine.store.JobTypeStore;
 import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
 import ravenworks.fizz.engine.invoker.TaskInvoker;
 import ravenworks.fizz.engine.lock.SchedulerLock;
 import ravenworks.fizz.engine.store.JobStore;
+import ravenworks.fizz.engine.store.JobTypeStore;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,7 +38,7 @@ public class Scheduler {
     private final JobStore jobStore;
     private final SchedulerLock schedulerLock;
     private final TaskInvoker taskInvoker;
-    private final JobTypeStore jobTypeRegistry;
+    private final JobTypeStore jobTypeStore;
     private final ServiceHealthIndicator healthIndicator;
     private final JobNotificationRepository notificationRepo;
     private final NotificationInvoker notificationInvoker;
@@ -47,14 +48,14 @@ public class Scheduler {
     public Scheduler(@NonNull JobStore jobStore,
                      @NonNull SchedulerLock schedulerLock,
                      @NonNull TaskInvoker taskInvoker,
-                     @NonNull JobTypeStore jobTypeRegistry,
+                     @NonNull JobTypeStore jobTypeStore,
                      @NonNull ServiceHealthIndicator healthIndicator,
                      @NonNull JobNotificationRepository notificationRepo,
                      @NonNull NotificationInvoker notificationInvoker) {
         this.jobStore = jobStore;
         this.schedulerLock = schedulerLock;
         this.taskInvoker = taskInvoker;
-        this.jobTypeRegistry = jobTypeRegistry;
+        this.jobTypeStore = jobTypeStore;
         this.healthIndicator = healthIndicator;
         this.notificationRepo = notificationRepo;
         this.notificationInvoker = notificationInvoker;
@@ -89,7 +90,6 @@ public class Scheduler {
             case EventLoop.PreShutdown _ -> this.onPreShutdown();
             case EventLoop.Terminated _ -> this.onTerminated();
             case CancelJobRequest req -> this.onCancelJob(req);
-            case AddJobNotification an -> this.onAddJobNotification(an);
             default -> log.warn("Unhandled event: {}", event);
         }
     }
@@ -120,7 +120,10 @@ public class Scheduler {
         switch (pr) {
             case ACQUIRED -> {
                 this.startNotifier();
-                this.jobStore.recoverActiveJobs();
+                List<JobEntity> recovered = this.jobStore.recoverActiveJobs();
+                for (JobEntity job : recovered) {
+                    this.notifyJob(job);
+                }
             }
             case LOST -> {
                 this.shutdownWorkers();
@@ -138,7 +141,7 @@ public class Scheduler {
         for (JobEntity job : jobs) {
             String workerName = makeWorkerName(job.getTenantId(), job.getJobType());
             Worker worker = this.workers.computeIfAbsent(workerName, name -> {
-                JobTypeEntity jobType = this.jobTypeRegistry.get(job.getJobType());
+                JobTypeEntity jobType = this.jobTypeStore.get(job.getJobType());
                 if (jobType == null) {
                     log.warn("JobType {} not found, skip job {}", job.getJobType(), job.getId());
                     return null;
@@ -168,7 +171,7 @@ public class Scheduler {
     private void startNotifier() {
         if (this.notifier == null) {
             this.notifier = new Notifier(this.notificationRepo,
-                    this.jobStore, this.jobTypeRegistry,
+                    this.jobStore, this.jobTypeStore,
                     this.notificationInvoker, this.healthIndicator);
             this.notifier.start();
             log.info("Notifier started");
@@ -188,19 +191,18 @@ public class Scheduler {
 
             @Override
             public void onStatusChanged(JobEntity job, JobStatus newStatus) {
-                eventLoop.enqueue(new AddJobNotification(job));
+                notifyJob(job);
             }
 
             @Override
             public void onProgressChanged(JobEntity job, int terminal, int total) {
-                eventLoop.enqueue(new AddJobNotification(job));
+                notifyJob(job);
             }
         };
     }
 
-    private void onAddJobNotification(AddJobNotification event) {
-        JobEntity job = event.job();
-        JobTypeEntity jobType = this.jobTypeRegistry.get(job.getJobType());
+    private void notifyJob(JobEntity job) {
+        JobTypeEntity jobType = this.jobTypeStore.get(job.getJobType());
         if (jobType == null || jobType.getNotifyPath() == null) {
             return;
         }
@@ -247,11 +249,6 @@ public class Scheduler {
 
 
     record CancelJobRequest(String jobId, CompletableFuture<Void> future) {
-
-    }
-
-
-    record AddJobNotification(JobEntity job) {
 
     }
 

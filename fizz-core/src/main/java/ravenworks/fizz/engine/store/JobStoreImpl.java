@@ -97,11 +97,11 @@ public class JobStoreImpl implements JobStore {
     }
 
     @Override
-    public void recoverActiveJobs() {
+    public List<JobEntity> recoverActiveJobs() {
         List<JobEntity> jobs = jobRepository.findActiveJobsNotInStatus(JobStatus.PENDING);
         if (jobs.isEmpty()) {
             log.info("Recovery: no active jobs to recover");
-            return;
+            return List.of();
         }
         int recovered = 0;
         int terminated = 0;
@@ -129,6 +129,7 @@ public class JobStoreImpl implements JobStore {
             }
         }
         log.info("Recovery complete: {} jobs recovered, {} jobs terminated", recovered, terminated);
+        return jobs;
     }
 
     @Override

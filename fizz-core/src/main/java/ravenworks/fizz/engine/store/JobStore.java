@@ -18,7 +18,7 @@ public interface JobStore {
 
     List<JobEntity> claimPendingJobs(LocalDateTime now, int limit);
 
-    void recoverActiveJobs();
+    List<JobEntity> recoverActiveJobs();
 
     ActiveJobEntity findActiveJob(String jobId);
 
