@@ -42,6 +42,8 @@ public class Worker {
 
     private JobListener listener = JobListener.NOOP;
 
+    private volatile boolean shuttingDown;
+
     public Worker(@NonNull String name,
                   @NonNull JobStore jobStore,
                   @NonNull TaskInvoker taskInvoker,
@@ -106,6 +108,7 @@ public class Worker {
     }
 
     private void onPreShutdown() {
+        this.shuttingDown = true;
         int totalFutures = 0;
         for (JobContext ctx : runningJobs.values()) {
             ctx.futures.values().forEach(f -> f.cancel(true));
@@ -164,6 +167,9 @@ public class Worker {
     // ---------- Dispatch Logic ----------
 
     private void tryDispatch() {
+        if (this.shuttingDown) {
+            return;
+        }
         this.promoteJobs();
         this.dispatchTasks();
         long futures = this.runningJobs.values().stream()
