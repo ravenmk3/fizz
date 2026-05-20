@@ -1,6 +1,7 @@
 package ravenworks.fizz.engine.invoker;
 
 import ravenworks.fizz.common.model.ApiResponse;
+import ravenworks.fizz.engine.model.NotificationBody;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -13,7 +14,7 @@ public interface NotificationInvoker {
     CompletableFuture<ApiResponse<Void>> notify(
             String serviceName,
             String path,
-            String body,
+            NotificationBody body,
             int timeoutMs);
 
 }

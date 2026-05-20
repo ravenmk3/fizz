@@ -9,6 +9,7 @@ import ravenworks.fizz.common.model.ApiResponse;
 import ravenworks.fizz.engine.discovery.ServiceDiscovery;
 import ravenworks.fizz.engine.discovery.ServiceInstance;
 import ravenworks.fizz.engine.discovery.ServiceUnavailableException;
+import ravenworks.fizz.engine.model.NotificationBody;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -32,16 +33,17 @@ public class JdkHttpNotificationInvoker implements NotificationInvoker {
 
     @Override
     public CompletableFuture<ApiResponse<Void>> notify(@NonNull String serviceName,
-                                                       @NonNull String path,
-                                                       @NonNull String body,
-                                                       int timeoutMs) {
+                                                        @NonNull String path,
+                                                        @NonNull NotificationBody body,
+                                                        int timeoutMs) {
         ServiceInstance instance = serviceDiscovery.resolve(serviceName);
         if (instance == null) {
             return CompletableFuture.failedFuture(new ServiceUnavailableException(serviceName));
         }
 
         URI uri = instance.getUri().resolve(path);
-        HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(body);
+        String bodyJson = JsonUtils.encode(body);
+        HttpRequest.BodyPublisher bodyPublisher = HttpRequest.BodyPublishers.ofString(bodyJson);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)

@@ -119,8 +119,8 @@ public class Scheduler {
         SchedulerLock.PulseResult pr = this.schedulerLock.pulse();
         switch (pr) {
             case ACQUIRED -> {
-                this.jobStore.recoverActiveJobs();
                 this.startNotifier();
+                this.jobStore.recoverActiveJobs();
             }
             case LOST -> {
                 this.shutdownWorkers();
@@ -136,7 +136,7 @@ public class Scheduler {
             return;
         }
         for (JobEntity job : jobs) {
-            String workerName = job.getTenantId() + ":" + job.getJobType();
+            String workerName = makeWorkerName(job.getTenantId(), job.getJobType());
             Worker worker = this.workers.computeIfAbsent(workerName, name -> {
                 JobTypeEntity jobType = this.jobTypeRepository.findByJobType(job.getJobType())
                         .orElse(null);
@@ -226,7 +226,7 @@ public class Scheduler {
             req.future().complete(null);
             return;
         }
-        String workerName = active.getTenantId() + ":" + active.getJobType();
+        String workerName = makeWorkerName(active.getTenantId(), active.getJobType());
         Worker worker = this.workers.get(workerName);
         if (worker == null) {
             log.warn("Cancel failed: no worker found for {}", workerName);
@@ -241,6 +241,10 @@ public class Scheduler {
                 req.future().complete(null);
             }
         });
+    }
+
+    private static String makeWorkerName(String tenantId, String jobType) {
+        return tenantId + "-" + jobType;
     }
 
 

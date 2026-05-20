@@ -3,7 +3,6 @@ package ravenworks.fizz.engine.runtime;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import ravenworks.fizz.common.json.JsonUtils;
 import ravenworks.fizz.common.model.ApiResponse;
 import ravenworks.fizz.common.runtime.EventLoop;
 import ravenworks.fizz.domain.entity.JobEntity;
@@ -13,10 +12,10 @@ import ravenworks.fizz.domain.repository.JobNotificationRepository;
 import ravenworks.fizz.domain.repository.JobTypeRepository;
 import ravenworks.fizz.engine.discovery.ServiceHealthTracker;
 import ravenworks.fizz.engine.invoker.NotificationInvoker;
+import ravenworks.fizz.engine.model.NotificationBody;
 import ravenworks.fizz.engine.store.JobStore;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -33,12 +32,12 @@ public class Notifier {
     private static final int NOTIFY_TIMEOUT_MS = 30_000;
 
     private final EventLoop eventLoop = new EventLoop("Notifier", 10_000, this::dispatch);
+    private final Map<String, JobTypeEntity> jobTypeCache = new ConcurrentHashMap<>();
     private final JobNotificationRepository notificationRepo;
     private final JobStore jobStore;
     private final JobTypeRepository jobTypeRepository;
     private final NotificationInvoker invoker;
     private final ServiceHealthTracker healthTracker;
-    private final Map<String, JobTypeEntity> jobTypeCache = new ConcurrentHashMap<>();
 
     public Notifier(@NonNull JobNotificationRepository notificationRepo,
                     @NonNull JobStore jobStore,
@@ -113,21 +112,20 @@ public class Notifier {
             return;
         }
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("jobId", job.getId());
-        body.put("status", job.getStatus().name());
-        body.put("bizKey", job.getBizKey());
-        body.put("succeededCount", job.getSucceededCount());
-        body.put("failedCount", job.getFailedCount());
-        body.put("cancelledCount", job.getCancelledCount());
-        body.put("totalCount", job.getTotalCount());
-        String bodyJson = JsonUtils.encode(body);
+        NotificationBody body = new NotificationBody();
+        body.setJobId(job.getId());
+        body.setStatus(job.getStatus().name());
+        body.setBizKey(job.getBizKey());
+        body.setSucceededCount(job.getSucceededCount());
+        body.setFailedCount(job.getFailedCount());
+        body.setCancelledCount(job.getCancelledCount());
+        body.setTotalCount(job.getTotalCount());
 
         try {
             ApiResponse<Void> resp = this.invoker.notify(
                     record.getServiceName(),
                     jobType.getNotifyPath(),
-                    bodyJson,
+                    body,
                     NOTIFY_TIMEOUT_MS).join();
 
             if (resp.getCode() == 0) {

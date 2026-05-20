@@ -53,7 +53,7 @@ public class Worker {
         this.jobType = jobType;
         this.serviceName = jobType.getServiceName();
         this.healthTracker = healthTracker;
-        this.eventLoop = new EventLoop(name, 10_000, this::dispatch);
+        this.eventLoop = new EventLoop("Worker-" + name, 10_000, this::dispatch);
     }
 
     public void start() {
@@ -90,7 +90,7 @@ public class Worker {
             case JobAssigned(JobEntity job) -> this.onJobAssigned(job);
             case CancelJobRequest req -> this.onCancelJob(req);
             case TaskCompleted tc -> this.onTaskCompleted(tc);
-            default -> log.warn("Unhandled event: {}", event);
+            default -> log.warn("Worker [{}] unhandled event: {}", this.name, event);
         }
     }
 
@@ -137,7 +137,7 @@ public class Worker {
 
         JobContext ctx = this.assignedJobs.get(jobId);
         if (ctx == null) {
-            log.warn("Cancel: job {} not found in assigned", jobId);
+            log.warn("Worker [{}] cancel job {} not found in assigned", this.name, jobId);
             req.future().complete(null);
             return;
         }
@@ -223,8 +223,8 @@ public class Worker {
             if (job.getMutexKey() != null) {
                 this.runningMutexKeys.add(job.getMutexKey());
             }
-            log.info("Job {} promoted to running (active={}/{})",
-                    job.getId(), this.runningJobs.size(), this.jobType.getJobConcurrency());
+            log.info("Worker [{}] job {} promoted to running (active={}/{})",
+                    this.name, job.getId(), this.runningJobs.size(), this.jobType.getJobConcurrency());
             this.listener.onStatusChanged(job, JobStatus.RUNNING);
         }
     }
@@ -357,7 +357,7 @@ public class Worker {
         ctx.job.setSucceededCount(ctx.job.getSucceededCount() + 1);
         ctx.tasks.remove(task.getId());
         this.healthTracker.recordSuccess(this.serviceName);
-        log.debug("Task {} succeeded for job {}", task.getId(), ctx.job.getId());
+        log.debug("Worker [{}] task {} succeeded for job {}", this.name, task.getId(), ctx.job.getId());
     }
 
     private void handleTaskFailure(JobContext ctx, TaskEntity task, String message) {
@@ -372,8 +372,8 @@ public class Worker {
                     TaskResultStatus.FAILED, message);
             task.setStatus(TaskStatus.WAITING);
             task.setAvailableAt(nextRetry);
-            log.warn("Task {} failed (attempt {}/{}), retry at {}: {}",
-                    task.getId(), currentAttempt,
+            log.warn("Worker [{}] task {} failed (attempt {}/{}), retry at {}: {}",
+                    this.name, task.getId(), currentAttempt,
                     maxAttempts == -1 ? "∞" : String.valueOf(maxAttempts),
                     nextRetry, message);
         } else {
@@ -438,7 +438,7 @@ public class Worker {
             this.runningMutexKeys.remove(ctx.job.getMutexKey());
         }
         this.assignedJobs.remove(ctx.job.getId());
-        log.info("Job {} completed: {}", ctx.job.getId(), finalStatus);
+        log.info("Worker [{}] job {} completed: {}", this.name, ctx.job.getId(), finalStatus);
         this.listener.onStatusChanged(ctx.job, finalStatus);
         return true;
     }
@@ -462,7 +462,8 @@ public class Worker {
         if (ctx.job.getMutexKey() != null) {
             this.runningMutexKeys.remove(ctx.job.getMutexKey());
         }
-        log.info("Job {} deactivated (all tasks waiting), released slot", ctx.job.getId());
+        log.info("Worker [{}] job {} deactivated (all tasks waiting), released slot",
+                this.name, ctx.job.getId());
     }
 
     private void logJobProgress(JobContext ctx) {

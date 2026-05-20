@@ -13,7 +13,7 @@ JobService.create() → Scheduler.schedule() → claimPendingJobs() → Worker.a
 ```
 
 - **Scheduler**: 全局单例，负责分布式锁、作业认领、Worker 创建与路由
-- **Worker**: 每 `租户:作业类型` 一个，负责任务派发、重试、并发控制、作业生命周期
+- **Worker**: 每 `租户-作业类型` 一个，负责任务派发、重试、并发控制、作业生命周期
 - **EventLoop**: 单线程虚拟线程事件循环，所有状态变更在 EventLoop 内完成
 
 ---
