@@ -2,7 +2,7 @@ package ravenworks.fizz.domain.enums;
 
 public enum JobStatus {
     PENDING,
-    CLAIMED,
+    ALLOCATED,
     RUNNING,
     SUCCEEDED,
     FAILED,

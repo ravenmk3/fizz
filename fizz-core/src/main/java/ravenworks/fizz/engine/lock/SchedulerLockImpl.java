@@ -32,10 +32,10 @@ public class SchedulerLockImpl implements SchedulerLock {
         try {
             boolean ok = acquireInternal();
             if (ok) {
-                log.info("Scheduler lock initialized and acquired by {}", InstanceId.VALUE);
+                log.info("Coordinator lock initialized and acquired by {}", InstanceId.VALUE);
             }
         } catch (Exception e) {
-            log.error("Scheduler lock init failed", e);
+            log.error("Coordinator lock init failed", e);
         }
     }
 
@@ -49,18 +49,18 @@ public class SchedulerLockImpl implements SchedulerLock {
                     return PulseResult.RENEWED;
                 }
                 acquired.set(false);
-                log.error("Scheduler lock renew failed, lock lost");
+                log.error("Coordinator lock renew failed, lock lost");
                 return PulseResult.LOST;
             }
             boolean ok = acquireInternal();
             if (ok) {
                 acquired.set(true);
-                log.info("Scheduler lock acquired by {}", InstanceId.VALUE);
+                log.info("Coordinator lock acquired by {}", InstanceId.VALUE);
                 return PulseResult.ACQUIRED;
             }
             return PulseResult.FAILED;
         } catch (Exception e) {
-            log.error("Scheduler lock pulse failed", e);
+            log.error("Coordinator lock pulse failed", e);
             return acquired.get() ? PulseResult.LOST : PulseResult.FAILED;
         }
     }
@@ -71,9 +71,9 @@ public class SchedulerLockImpl implements SchedulerLock {
         try {
             lockRepository.releaseLock(InstanceId.VALUE);
             acquired.set(false);
-            log.info("Scheduler lock released by {}", InstanceId.VALUE);
+            log.info("Coordinator lock released by {}", InstanceId.VALUE);
         } catch (Exception e) {
-            log.error("Scheduler lock release failed", e);
+            log.error("Coordinator lock release failed", e);
         }
     }
 

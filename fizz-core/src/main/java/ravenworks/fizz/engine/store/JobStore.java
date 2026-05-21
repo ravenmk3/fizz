@@ -16,7 +16,7 @@ import java.util.List;
  */
 public interface JobStore {
 
-    List<JobEntity> claimPendingJobs(LocalDateTime now, int limit);
+    List<JobEntity> allocatePendingJobs(LocalDateTime now, int limit);
 
     List<JobEntity> recoverActiveJobs();
 
@@ -29,7 +29,7 @@ public interface JobStore {
     List<TaskEntity> loadNonTerminalTasks(String jobId);
 
     @Transactional(rollbackFor = Exception.class)
-    void claimTask(String taskId);
+    void allocateTask(String taskId);
 
     @Transactional(rollbackFor = Exception.class)
     void markTaskSucceeded(String taskId, String jobId);

@@ -43,33 +43,33 @@ public class JobStoreImpl implements JobStore {
     }
 
     @Override
-    public List<JobEntity> claimPendingJobs(@NonNull LocalDateTime now, int limit) {
+    public List<JobEntity> allocatePendingJobs(@NonNull LocalDateTime now, int limit) {
         List<ActiveJobEntity> pendingActives = activeJobRepository.findPendingReady(JobStatus.PENDING, now);
         if (pendingActives.isEmpty()) {
             return List.of();
         }
 
-        List<JobEntity> claimed = new ArrayList<>();
+        List<JobEntity> allocated = new ArrayList<>();
         int count = 0;
         for (ActiveJobEntity active : pendingActives) {
             if (count >= limit) {
                 break;
             }
             try {
-                JobEntity claimedJob = transactionTemplate.execute(status -> claimOne(active.getId()));
-                if (claimedJob != null) {
-                    claimed.add(claimedJob);
+                JobEntity allocatedJob = transactionTemplate.execute(status -> allocateOne(active.getId()));
+                if (allocatedJob != null) {
+                    allocated.add(allocatedJob);
                 }
                 count++;
             } catch (OptimisticLockingFailureException e) {
-                log.debug("Job {} was claimed by another instance", active.getId());
+                log.debug("Job {} was allocated by another instance", active.getId());
             }
         }
-        log.info("Claimed {} jobs out of {} pending", claimed.size(), Math.min(pendingActives.size(), limit));
-        return claimed;
+        log.info("Allocated {} jobs out of {} pending", allocated.size(), Math.min(pendingActives.size(), limit));
+        return allocated;
     }
 
-    private JobEntity claimOne(String jobId) {
+    private JobEntity allocateOne(String jobId) {
         ActiveJobEntity active = activeJobRepository.findById(jobId).orElse(null);
         if (active == null || active.getStatus() != JobStatus.PENDING) {
             return null;
@@ -78,11 +78,11 @@ public class JobStoreImpl implements JobStore {
         if (job == null || job.getStatus() != JobStatus.PENDING) {
             return null;
         }
-        active.setStatus(JobStatus.CLAIMED);
-        job.setStatus(JobStatus.CLAIMED);
+        active.setStatus(JobStatus.ALLOCATED);
+        job.setStatus(JobStatus.ALLOCATED);
         activeJobRepository.save(active);
         jobRepository.save(job);
-        log.debug("Job {} claimed", jobId);
+        log.debug("Job {} allocated", jobId);
         return job;
     }
 
@@ -147,7 +147,7 @@ public class JobStoreImpl implements JobStore {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void claimTask(@NonNull String taskId) {
+    public void allocateTask(@NonNull String taskId) {
         TaskEntity task = taskRepository.findById(taskId).orElse(null);
         if (task == null || (task.getStatus() != TaskStatus.PENDING
                 && task.getStatus() != TaskStatus.WAITING)) {
@@ -157,7 +157,7 @@ public class JobStoreImpl implements JobStore {
         task.setAttempts(task.getAttempts() + 1);
         task.setInstanceId(InstanceId.VALUE);
         taskRepository.save(task);
-        log.debug("Task {} claimed (attempt {})", taskId, task.getAttempts());
+        log.debug("Task {} allocated (attempt {})", taskId, task.getAttempts());
     }
 
     @Override

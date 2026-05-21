@@ -11,7 +11,7 @@ import ravenworks.fizz.engine.discovery.ServiceHealthIndicator;
 import ravenworks.fizz.engine.discovery.ServiceLoadBalancer;
 import ravenworks.fizz.engine.invoker.*;
 import ravenworks.fizz.engine.lock.SchedulerLock;
-import ravenworks.fizz.engine.runtime.Scheduler;
+import ravenworks.fizz.engine.runtime.Coordinator;
 import ravenworks.fizz.engine.store.JobStore;
 import ravenworks.fizz.engine.store.JobTypeStore;
 
@@ -44,19 +44,19 @@ public class EngineConfiguration {
     }
 
     @Bean
-    public Scheduler scheduler(@NonNull JobStore jobStore,
-                               @NonNull SchedulerLock schedulerLock,
-                               @NonNull TaskInvoker taskInvoker,
-                               @NonNull JobTypeStore jobTypeRegistry,
-                               @NonNull ServiceHealthIndicator healthIndicator,
-                               @NonNull JobNotificationRepository notificationRepo,
-                               @NonNull NotificationInvoker notificationInvoker) {
-        return new Scheduler(jobStore, schedulerLock, taskInvoker,
+    public Coordinator scheduler(@NonNull JobStore jobStore,
+                                 @NonNull SchedulerLock schedulerLock,
+                                 @NonNull TaskInvoker taskInvoker,
+                                 @NonNull JobTypeStore jobTypeRegistry,
+                                 @NonNull ServiceHealthIndicator healthIndicator,
+                                 @NonNull JobNotificationRepository notificationRepo,
+                                 @NonNull NotificationInvoker notificationInvoker) {
+        return new Coordinator(jobStore, schedulerLock, taskInvoker,
                 jobTypeRegistry, healthIndicator, notificationRepo, notificationInvoker);
     }
 
     @Bean
-    public static SmartLifecycle schedulerLifecycle(@NonNull Scheduler scheduler) {
+    public static SmartLifecycle schedulerLifecycle(@NonNull Coordinator scheduler) {
         return new SmartLifecycle() {
 
             @Override

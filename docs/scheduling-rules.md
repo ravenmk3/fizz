@@ -7,12 +7,12 @@ date: 2026-05-19
 ## 架构概览
 
 ```
-JobService.create() → Scheduler.schedule() → claimPendingJobs() → Worker.assign()
+JobService.create() → Coordinator.schedule() → allocatePendingJobs() → Worker.assign()
                                                                     ├─ promoteJobs()
                                                                     └─ dispatchTasks()
 ```
 
-- **Scheduler**: 全局单例，负责分布式锁、作业认领、Worker 创建与路由
+- **Coordinator**: 全局单例，负责分布式锁、作业认领、Worker 创建与路由
 - **Worker**: 每 `租户-作业类型` 一个，负责任务派发、重试、并发控制、作业生命周期
 - **EventLoop**: 单线程虚拟线程事件循环，所有状态变更在 EventLoop 内完成
 
@@ -24,19 +24,19 @@ JobService.create() → Scheduler.schedule() → claimPendingJobs() → Worker.a
 
 ```mermaid
 stateDiagram-v2
-    PENDING --> CLAIMED : Scheduler 认领
-    CLAIMED --> RUNNING : Worker 提升
+    PENDING --> ALLOCATED : Coordinator 认领
+    ALLOCATED --> RUNNING : Worker 提升
     RUNNING --> SUCCEEDED : 全部 Task 成功
     RUNNING --> FAILED : 有 Task 失败
     RUNNING --> CANCELLED : 用户取消
     PENDING --> CANCELLED : 用户取消
-    CLAIMED --> CANCELLED : 用户取消
+    ALLOCATED --> CANCELLED : 用户取消
 ```
 
 | 转移 | 触发 |
 |------|------|
-| PENDING → CLAIMED | Scheduler 成功认领 |
-| CLAIMED → RUNNING | Worker 首次提升作业 (promoteJobs) |
+| PENDING → ALLOCATED | Coordinator 成功认领 |
+| ALLOCATED → RUNNING | Worker 首次提升作业 (promoteJobs) |
 | RUNNING → SUCCEEDED | 所有 Task 均为 SUCCEEDED |
 | RUNNING → FAILED | 有 Task 为 FAILED 且无 CANCELLED |
 | RUNNING → CANCELLED | 用户取消 或 有 Task 被取消 |
@@ -58,7 +58,7 @@ stateDiagram-v2
 
 | 转移 | 触发 |
 |------|------|
-| PENDING → RUNNING | dispatchTasks 选中并 claim |
+| PENDING → RUNNING | dispatchTasks 选中并 allocate |
 | WAITING → RUNNING | dispatchTasks 选中 (availableAt 已到期) |
 | RUNNING → SUCCEEDED | 回调返回 SUCCEEDED |
 | RUNNING → WAITING | 回调返回 FAILED(可重试) 或 IN_PROGRESS |
@@ -165,13 +165,13 @@ Task 当前 attempt = N:
 | 当前状态 | 处理 |
 |----------|------|
 | PENDING | 直接 DB 操作: tasks→CANCELLED, job→CANCELLED, 删除 active_job |
-| CLAIMED / RUNNING | 路由到 Worker→取消所有 in-flight Future→DB 批量取消任务→completeJob |
+| ALLOCATED / RUNNING | 路由到 Worker→取消所有 in-flight Future→DB 批量取消任务→completeJob |
 
 ---
 
 ## 启动恢复
 
-Scheduler 获取锁成功后执行 `recoverActiveJobs()`:
+Coordinator 获取锁成功后执行 `recoverActiveJobs()`:
 
 1. 查询 `fizz_job` 中所有活跃作业 (非 PENDING 状态)
 2. 重新统计 each job 的 SUCCEEDED/FAILED/CANCELLED 计数
@@ -207,7 +207,7 @@ JobContext {
 | `Idle` | 事件队列超时空闲 | tryDispatch |
 | `PreShutdown` | shutdown 请求 | 取消所有 in-flight Future |
 | `Terminated` | EventLoop 退出 | 清理 |
-| `JobAssigned` | Scheduler.assign | 加入 assignedJobs → TryDispatch |
-| `CancelJobRequest` | Scheduler.cancel | 取消任务 + completeJob |
+| `JobAssigned` | Coordinator.assign | 加入 assignedJobs → TryDispatch |
+| `CancelJobRequest` | Coordinator.cancel | 取消任务 + completeJob |
 | `TryDispatch` | 各种触发点 | promoteJobs + dispatchTasks |
 | `TaskCompleted` | HTTP 回调完成 | 处理结果 + TryDispatch |

@@ -17,7 +17,7 @@ import ravenworks.fizz.domain.entity.*;
 import ravenworks.fizz.domain.enums.JobStatus;
 import ravenworks.fizz.domain.enums.TaskStatus;
 import ravenworks.fizz.domain.repository.*;
-import ravenworks.fizz.engine.runtime.Scheduler;
+import ravenworks.fizz.engine.runtime.Coordinator;
 import ravenworks.fizz.service.JobService;
 import ravenworks.fizz.service.dto.*;
 
@@ -33,7 +33,7 @@ public class JobServiceImpl implements JobService {
 
     private static final int MAX_PAGE_SIZE = 100;
 
-    private final Scheduler scheduler;
+    private final Coordinator scheduler;
     private final ServiceRepository serviceRepository;
     private final JobTypeRepository jobTypeRepository;
     private final JobRepository jobRepository;
@@ -109,13 +109,13 @@ public class JobServiceImpl implements JobService {
             tasks.add(task);
         }
         this.taskRepository.saveAll(tasks);
-        this.wakeupScheduler();
+        this.wakeupCoordinator();
 
         log.info("Job created: id={}, jobType={}, tasks={}", jobId, request.getJobType(), tasks.size());
         return new CreateJobResponse(jobId, JobStatus.PENDING.name(), request.getTasks().size(), job.getCreatedAt(), true);
     }
 
-    private void wakeupScheduler() {
+    private void wakeupCoordinator() {
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
 

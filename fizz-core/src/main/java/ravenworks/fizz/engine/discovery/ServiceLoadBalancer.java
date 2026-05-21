@@ -115,6 +115,7 @@ public class ServiceLoadBalancer implements ServiceHealthIndicator {
             this.probation = probation;
             this.probationSuccesses = probationSuccesses;
         }
+
     }
 
 }

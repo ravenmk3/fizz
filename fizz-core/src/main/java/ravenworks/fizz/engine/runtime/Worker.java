@@ -221,7 +221,7 @@ public class Worker {
                 log.debug("Worker [{}] job {} skipped: no ready task", this.name, job.getId());
                 continue;
             }
-            if (job.getStatus() == JobStatus.CLAIMED) {
+            if (job.getStatus() == JobStatus.ALLOCATED) {
                 this.jobStore.transitionJobToRunning(job);
             }
             ctx.active = true;
@@ -293,9 +293,9 @@ public class Worker {
             return;
         }
         try {
-            this.jobStore.claimTask(task.getId());
+            this.jobStore.allocateTask(task.getId());
         } catch (Exception e) {
-            log.warn("Worker [{}] failed to claim task {}: {}", this.name, task.getId(), e.getMessage());
+            log.warn("Worker [{}] failed to allocate task {}: {}", this.name, task.getId(), e.getMessage());
             return;
         }
         task.setStatus(TaskStatus.RUNNING);

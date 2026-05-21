@@ -28,13 +28,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Raven
  */
 @Slf4j
-public class Scheduler {
+public class Coordinator {
 
     private static final Object WAKEUP_SIGNAL = new Object();
-    private static final int CLAIM_BATCH_SIZE = 1_000;
+    private static final int ALLOCATE_BATCH_SIZE = 1_000;
 
     private final Map<String, Worker> workers = new ConcurrentHashMap<>();
-    private final EventLoop eventLoop = new EventLoop("Scheduler", 5_000, this::dispatch);
+    private final EventLoop eventLoop = new EventLoop("Coordinator", 5_000, this::dispatch);
     private final JobStore jobStore;
     private final SchedulerLock schedulerLock;
     private final TaskInvoker taskInvoker;
@@ -45,13 +45,13 @@ public class Scheduler {
 
     private Notifier notifier;
 
-    public Scheduler(@NonNull JobStore jobStore,
-                     @NonNull SchedulerLock schedulerLock,
-                     @NonNull TaskInvoker taskInvoker,
-                     @NonNull JobTypeStore jobTypeStore,
-                     @NonNull ServiceHealthIndicator healthIndicator,
-                     @NonNull JobNotificationRepository notificationRepo,
-                     @NonNull NotificationInvoker notificationInvoker) {
+    public Coordinator(@NonNull JobStore jobStore,
+                       @NonNull SchedulerLock schedulerLock,
+                       @NonNull TaskInvoker taskInvoker,
+                       @NonNull JobTypeStore jobTypeStore,
+                       @NonNull ServiceHealthIndicator healthIndicator,
+                       @NonNull JobNotificationRepository notificationRepo,
+                       @NonNull NotificationInvoker notificationInvoker) {
         this.jobStore = jobStore;
         this.schedulerLock = schedulerLock;
         this.taskInvoker = taskInvoker;
@@ -134,7 +134,7 @@ public class Scheduler {
                 return;
             }
         }
-        var jobs = jobStore.claimPendingJobs(LocalDateTime.now(), CLAIM_BATCH_SIZE);
+        var jobs = jobStore.allocatePendingJobs(LocalDateTime.now(), ALLOCATE_BATCH_SIZE);
         if (jobs.isEmpty()) {
             return;
         }

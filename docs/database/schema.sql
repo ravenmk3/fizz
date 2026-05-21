@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS `fizz_job`
     `biz_key`          VARCHAR(256) NULL COMMENT '业务去重键，与 job_type 共同唯一',
     `task_concurrency` INT          NOT NULL DEFAULT 1 COMMENT '任务并发度',
     `max_attempts`     INT          NOT NULL DEFAULT -1 COMMENT '任务最大尝试次数，-1 表示无限',
-    `status`           VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/CLAIMED/RUNNING/SUCCEEDED/FAILED/CANCELLED',
+    `status`           VARCHAR(16)  NOT NULL DEFAULT 'PENDING' COMMENT 'PENDING/ALLOCATED/RUNNING/SUCCEEDED/FAILED/CANCELLED',
     `scheduled_at`     DATETIME(3)  NULL COMMENT '计划启动时间，NULL 表示立即执行',
     `total_count`      INT          NOT NULL DEFAULT 0 COMMENT '任务总数',
     `succeeded_count`  INT          NOT NULL DEFAULT 0 COMMENT '已成功任务数(SUCCEEDED)',
@@ -146,7 +146,7 @@ CREATE TABLE IF NOT EXISTS `fizz_active_job`
     `service_name` VARCHAR(128) NOT NULL COMMENT '服务名（冗余）',
     `job_type`     VARCHAR(128) NOT NULL COMMENT '作业类型（冗余）',
     `mutex_key`    VARCHAR(256) NULL COMMENT 'MutexKey（冗余）',
-    `status`       VARCHAR(16)  NOT NULL COMMENT 'PENDING/CLAIMED/RUNNING',
+    `status`       VARCHAR(16)  NOT NULL COMMENT 'PENDING/ALLOCATED/RUNNING',
     `scheduled_at` DATETIME(3)  NULL COMMENT '计划启动时间（冗余）',
     `version`      INT          NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
 
